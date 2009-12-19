@@ -25,6 +25,10 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
+import jcuda.Pointer;
+import jcuda.Sizeof;
+import jcuda.jcublas.JCublas;
+
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
@@ -42,8 +46,8 @@ public class SubMatrix {
    * @param i the size of rows
    * @param j the size of columns
    */
-  public SubMatrix(int i, int j) {
-    this.matrix = new double[i][j];
+  public SubMatrix(int numRows, int numColumns) {
+    this.matrix = new double[numColumns][numRows];
   }
 
   /**
@@ -66,7 +70,7 @@ public class SubMatrix {
     
     for(int i = 0; i < rows; i++) {
       for(int j = 0; j < columns; j++) {
-        this.matrix[i][j] = dis.readDouble();        
+        this.matrix[j][i] = dis.readDouble();        
       }
     }
     
@@ -82,7 +86,7 @@ public class SubMatrix {
    * @param value
    */
   public void set(int row, int column, double value) {
-    matrix[row][column] = value;
+    matrix[column][row] = value;
   }
 
   /**
@@ -93,22 +97,22 @@ public class SubMatrix {
    * @param value
    */
   public void set(int row, int column, byte[] value) {
-    matrix[row][column] = Bytes.toDouble(value); 
+    matrix[column][row] = Bytes.toDouble(value); 
   }
   
   /**
    * Gets the value
    * 
-   * @param i
-   * @param j
+   * @param row
+   * @param column
    * @return the value of submatrix(i, j)
    */
-  public double get(int i, int j) {
-    return matrix[i][j];
+  public double get(int row, int column) {
+    return matrix[column][row];
   }
 
   public void add(int row, int column, double value) {
-    matrix[row][column] = matrix[row][column] + value;
+    matrix[column][row] = matrix[column][row] + value;
   }
 
   /**
@@ -138,6 +142,31 @@ public class SubMatrix {
   public SubMatrix mult(SubMatrix b) {
     SubMatrix c = new SubMatrix(this.getRows(), b.getColumns());
     
+    JCublas.cublasInit();
+    Pointer matrixAdata = new Pointer();
+    Pointer matrixBdata = new Pointer();
+    Pointer matrixCdata = new Pointer();
+    JCublas.cublasAlloc(this.getRows() * this.getColumns(), Sizeof.DOUBLE, matrixAdata);
+    JCublas.cublasAlloc(b.getRows() * b.getColumns(), Sizeof.DOUBLE, matrixBdata);
+    JCublas.cublasAlloc(c.getRows() * c.getColumns(), Sizeof.DOUBLE, matrixCdata);
+    
+    for (int j = 0; j < this.getColumns(); j++)
+    	JCublas.cublasSetMatrix(this.getRows(), this.getColumns(), Sizeof.DOUBLE, Pointer.to(this.matrix[j]), this.getRows(), matrixAdata, this.getRows());
+    for (int j = 0; j < b.getColumns(); j++)
+    	JCublas.cublasSetMatrix(b.getRows(), b.getColumns(), Sizeof.DOUBLE, Pointer.to(b.matrix[j]), b.getRows(), matrixBdata, b.getRows());
+    // NOTE: We don't use C again here (beta = 0.0f), so we do not initialize C.
+    
+    JCublas.cublasDgemm('n', 'n', this.getRows(), this.getColumns(), b.getColumns(), 1.0f, matrixAdata, this.getRows(), matrixBdata, b.getRows(), 0.0f, matrixCdata, c.getRows());
+    
+    for (int j = 0; j < c.getColumns(); j++)
+    	JCublas.cublasGetVector(c.getRows(), Sizeof.DOUBLE, matrixCdata, c.getRows(), Pointer.to(c.matrix[j]), c.getRows());
+    
+    JCublas.cublasFree(matrixAdata);
+    JCublas.cublasFree(matrixBdata);
+    JCublas.cublasFree(matrixCdata);
+    JCublas.cublasShutdown();
+    
+    /*
     for (int i = 0; i < this.getRows(); i++) {
       for (int j = 0; j < b.getColumns(); j++) {
         for (int k = 0; k < this.getColumns(); k++) {
@@ -145,6 +174,7 @@ public class SubMatrix {
         }
       }
     }
+    */
 
     return c;
   }
@@ -155,7 +185,7 @@ public class SubMatrix {
    * @return the number of rows
    */
   public int getRows() {
-    return this.matrix.length;
+    return this.matrix[0].length;
   }
 
   /**
@@ -164,7 +194,7 @@ public class SubMatrix {
    * @return the number of columns
    */
   public int getColumns() {
-    return this.matrix[0].length;
+    return this.matrix.length;
   }
 
   /**
