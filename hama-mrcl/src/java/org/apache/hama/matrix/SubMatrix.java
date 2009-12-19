@@ -55,6 +55,7 @@ public class SubMatrix {
    * 
    * @param c a two dimensional double array
    */
+  @Deprecated
   public SubMatrix(double[][] c) {
     double[][] matrix = c;
     this.matrix = matrix;
@@ -207,6 +208,7 @@ public class SubMatrix {
   /**
    * @return the 2d double array
    */
+  @Deprecated
   public double[][] getDoubleArray() {
     double[][] result = matrix;
     return result;
