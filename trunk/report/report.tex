@@ -1,9 +1,12 @@
 \documentclass[a4paper]{article}
 
 % 한글 환경 설정
-\usepackage{kotex}
+\usepackage[finemath]{kotex}
 \usepackage{dhucs-cmap}
 \pdfmapfile{=unttf-pdftex-kotex.map}
+\usepackage[verbose=true]{microtype}
+\DeclareMicrotypeSet{dhucsmicro}{encoding=LUC}
+\UseMicrotypeSet[expansion]{dhucsmicro}
 
 % 기타 환경 설정
 \usepackage{palatino}
