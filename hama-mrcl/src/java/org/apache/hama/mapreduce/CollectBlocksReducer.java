@@ -55,7 +55,7 @@ public class CollectBlocksReducer extends
 
       // put the subVector to the subMatrix
       for (j = 0; j < smCols; j++) {
-        subMatrix.set(i, j, vw.get(colBase + j));
+        subMatrix.set(i, j, (float)vw.get(colBase + j));
       }
     }
     //BlockWritable outValue = new BlockWritable(subMatrix);
