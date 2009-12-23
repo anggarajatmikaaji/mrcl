@@ -9,9 +9,11 @@
 \UseMicrotypeSet[expansion]{dhucsmicro}
 
 % 기타 환경 설정
+\usepackage{amsmath}
 \usepackage{palatino}
 \usepackage[onehalfspacing]{setspace}
 \usepackage{url}
+\usepackage[usenames,dvipsnames]{color}
 \usepackage{multicol}
 
 % Page Layout
@@ -65,6 +67,18 @@ Dense matrix multiplication을 수행할 때 I/O 병목에 의해 계산 속도�
 만약 각 block들이 적당히 큰 상황이라면, 우리는 각 노드 상에서 이러한 block들의 각 element들을 한 번 불러와 적당한 횟수만큼 multiplication에 다시 이용할 수 있을 것이다.
 이때 각 block들은 일반적으로 square matrix지만 아닌 경우도 있을 수 있으므로 알고리즘에 따라서 적절한 block decomposition을 구현하는 것이 중요하다.
 
+\subsubsection{Outer Product Algorthm}
+Matrix multiplication을 구현하는 방법은 여러 가지가 있는데, 정의대로 계산하는 $O(n^3)$ 짜리와 $O(n^{2.376})$의 시간이 걸리는 Strassen 알고리즘 등이 있으나 우리는 MapReduce에서 쓰기 알맞도록 outer product를 응용한 방식을 사용하였다.
+
+\begin{align} \label{eq:OuterProduct}
+&\begin{bmatrix} \color{Red}1 & \color{Green}2 & \color{NavyBlue}3 & \\ \color{Red}4 & \color{Green}5 & \color{NavyBlue}6 \\ \color{Red}7 & \color{Green}8 & \color{NavyBlue}9 \end{bmatrix} \begin{bmatrix} \color{Red}a & \color{Red}d \\ \color{Green}b & \color{Green}e \\ \color{NavyBlue}c & \color{NavyBlue}e \end{bmatrix} =\\ \nonumber
+&\begin{bmatrix} \color{Red}1a & \color{Red}1d \\ \color{Red}4a & \color{Red}4d \\ \color{Red}7a & \color{Red}7d \end{bmatrix} + \begin{bmatrix} \color{Green}2b & \color{Green}2e \\ \color{Green}5b & \color{Green}5e \\ \color{Green}8b & \color{Green}8e \end{bmatrix} + \begin{bmatrix} \color{NavyBlue}3c & \color{NavyBlue}3f \\ \color{NavyBlue}6c & \color{NavyBlue}6f \\ \color{NavyBlue}9c & \color{NavyBlue}9f \end{bmatrix}
+\end{align}
+
+Eq.~\eqref{eq:OuterProduct}를 보면 두 matrix의 열과 행 vector들을 각각 outer product를 취하여 나온 matrix들을 모두 더하면 전체 multiplication 결과를 완성할 수 있음을 알 수 있다.
+
+여기서 각 원소들은 하나의 실수가 아니라 submatrix(앞에서 block이라고 표현했던 matrix의 일부)여도 되므로, 우리는 이처럼 block 단위로 쪼개고 다시 합치는 과정을 MapReduce로, 각 block들을 곱하는 과정을 개별 노드에서 GPU로 가속하는 방식을 취하였다.
+
 \subsection{NVIDIA CUDA}
 실험에 사용된 클러스터 상의 모든 노드에는 NVIDIA의 그래픽 카드가 장착되어 있다.
 NVIDIA에서는 CUDA라는 기술을 통해 개발자들이 C 언어로 직접 GPU에서 동작하는 프로그램을 만들 수 있도록 하고 있다.
@@ -74,14 +88,34 @@ NVIDIA에서는 CUDA라는 기술을 통해 개발자들이 C 언어로 직접 G
 프로젝트 초기에는 matrix multiplication 구현 자체에 대한 부담을 줄이고 GPU를 이용한 가속에 집중하기 위해 이미 Hadoop 기반으로 다양한 matrix 연산을 구현하고 있는 Apache 재단의 Hama 프로젝트를 이용하였다.
 하지만 다음과 같은 이유로 Hama 프로젝트를 사용하지 않고 직접 Hadoop MapReduce로 구현하게 되었다.
 \begin{itemize}
-	\item Hama가 Hadoop 기반 데이터베이스인 HBase를 이용하고 있었고, 아직 HBase가 성능 측면이나 프로젝트 자체의 성숙도가 떨어져 실제 우리가 원하는 규모의 연산을 돌리기에는 적합치 않았다.
-	\item 또한 Hama에서는 matrix의 원소들을 기본으로 double precision으로 처리하고 있는데 여기에 CUDA를 연동시키려면 single precision으로 변환하는 과정이 필요하여 불필요한 성능 저하를 발생시켰고 이렇게 동작하도록 Hama의 코드 전체를 바꾸는 것이 용이하지 않았다.
+	\item Hama가 Hadoop 기반 데이터베이스인 HBase를 이용하고 있었고, 아직 HBase가 성능 측면이나 프로젝트 자체의 성숙도가 떨어져 실제 우리가 원하는 규모의 연산을 돌리기에는 적합치 않았다.\footnote{우리 목표는 $10^4$이나 $10^5$ 정도인데, Hama 개발자 스스로 자신의 블로그에서 $5000 \times 5000$ 정도가 한계라고 밝히고 있음.\\(http://blog.udanax.org/2009/01/distributed-matrix-multiplication-with.html)}
+	HBase를 들어내려면 Hama를 거의 처음부터 다시 짜야 한다.
+	\item Hama에서는 matrix의 원소들을 기본으로 double precision으로 처리하고 있는데 여기에 CUDA를 연동시키려면 single precision으로 변환하는 과정이 필요하여 불필요한 성능 저하를 발생시키고 이렇게 동작하도록 Hama의 코드 전체를 바꾸는 것이 용이하지 않았다.
+	\item 곱셈 과정에서 block 쌍들을 모두 별도로 저장하였다가 불러오는데, 이 과정의 I/O complexity가 $O(n^3)$이어서 새로운 접근 방법이 필요했고 결국 이것이 $O(4n^2)$으로 줄어든 위의 outer product algorithm을 새로 구현해야 했다.
 \end{itemize}
 
 \section{Implementation}
 TODO: 최종적으로 Hadoop 위에 바로 코딩해서 올린 구조 설명
 \subsection{Data Model}
 \subsection{MapReduce Execution}
+\subsubsection{Mapper}
+\begin{description}
+	\item[Input] \hfill \\
+	blah blah
+	\item[Output] \hfill \\
+	blah blah
+	\item[Mechanism] \hfill \\
+	blah blah
+\end{description}
+\subsubsection{Reducer}
+\begin{description}
+	\item[Input] \hfill \\
+	blah blah
+	\item[Output] \hfill \\
+	blah blah
+	\item[Mechanism] \hfill \\
+	blah blah
+\end{description}
 
 \section{Performance Analysis}
 \subsection{Pure Java}
