@@ -3,6 +3,7 @@
 	<classpathentry kind="src" path="src/examples"/>
 	<classpathentry kind="src" path="src/java"/>
 	<classpathentry kind="src" path="src/test"/>
+	<classpathentry kind="src" path="src/mrcl"/>
 	<classpathentry kind="lib" path="lib/AgileJSON-2009-03-30.jar"/>
 	<classpathentry kind="lib" path="lib/commons-cli-2.0-SNAPSHOT.jar"/>
 	<classpathentry kind="lib" path="lib/commons-el-from-jetty-5.1.4.jar"/>
@@ -50,5 +51,6 @@
 	<classpathentry kind="lib" path="lib/jcudpp-0.2.3.jar"/>
 	<classpathentry kind="lib" path="lib/jcufft-0.2.3.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
