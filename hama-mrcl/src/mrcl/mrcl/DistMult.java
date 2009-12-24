@@ -51,6 +51,10 @@ public class DistMult {
 			job.setReducerClass(MultReduce.class);
 			job.setCombinerClass(MultReduce.class);
 			job.setInputFormat(TextInputFormat.class);
+			job.setMapOutputKeyClass(MultArgs.class);
+			job.setMapOutputValueClass(Matrix.class);
+			job.setOutputKeyClass(MultArgs.class);
+			job.setOutputValueClass(Matrix.class);
 			FileInputFormat.setInputPaths(job, new Path(jobName));
 			FileSystem fs = FileSystem.get(conf);
 			Path outDir = new Path("some");
