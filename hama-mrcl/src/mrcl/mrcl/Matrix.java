@@ -3,6 +3,7 @@ package mrcl;
 import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.DataOutput;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.FloatBuffer;
 
@@ -60,6 +61,7 @@ public class Matrix implements Writable {
 				content.writeRemote(conf);
 			}
 		}
+		matrix.writeRemote(conf);
 		return matrix;
 	}
 
@@ -95,6 +97,7 @@ public class Matrix implements Writable {
 				content.writeRemote(conf);
 			}
 		}
+		matrix.writeRemote(conf);
 		return matrix;
 	}
 
@@ -267,10 +270,6 @@ public class Matrix implements Writable {
 		return _name;
 	}
 
-	public static String getPath(String name) {
-		return "/mrcl/_matrix_/_" + name;
-	}
-
 	@Override
 	public void readFields(DataInput input) throws IOException {
 		_name = input.readUTF();
@@ -285,6 +284,18 @@ public class Matrix implements Writable {
 		output.writeUTF(_name);
 		output.writeInt(_rows);
 		output.writeInt(_cols);
+	}
+	
+	public void writeRemote(Configuration conf){
+		try {
+			FileSystem fs = FileSystem.get(conf);
+			DataOutputStream dos = fs.create(new Path(getDescPath(_name)));
+			write(dos);
+			dos.close();
+			fs.close();
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	public static Matrix read(DataInput input) {
@@ -326,5 +337,12 @@ public class Matrix implements Writable {
 			throw new RuntimeException(e);
 		}
 	}
+	
+	public static String getPath(String name) {
+		return "/mrcl/matrix/" + name;
+	}
 
+	public static String getDescPath(String name){
+		return getPath(name) + "/desc";
+	}
 }
