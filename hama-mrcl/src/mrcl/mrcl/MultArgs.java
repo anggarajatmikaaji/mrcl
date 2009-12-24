@@ -15,7 +15,10 @@ public class MultArgs implements WritableComparable<MultArgs> {
 	String _a;
 	String _b;
 	int _round;
-
+	
+	public MultArgs(){
+	}
+	
 	public MultArgs(String string) {
 		String[] words = string.split("/");
 		_a = words[0];
