@@ -146,7 +146,7 @@ public class Matrix implements Writable {
 		// .createFillRemote(resultName, rows, cols, 0, conf);
 
 		// make intermediate results
-		Matrix inter = Matrix.createFillRemote(String.format("__inter__%d__%s",
+		Matrix inter = Matrix.createFillRemote(String.format("__tmp/%s_%d",
 				round, resultName), rows, cols, 0, conf);
 
 		for (int bRow = 0; bRow < bRows; bRow++) {
@@ -154,6 +154,7 @@ public class Matrix implements Writable {
 				Content interContent = Content.multiplyJava(inter, Content
 						.readRemote(new Block(a, round, bCol), conf), Content
 						.readRemote(new Block(b, bRow, round), conf));
+				interContent.writeRemote(conf);
 				//
 				// Content resultContent = Content.add(result, Content
 				// .read(new Block(result, bRow, bCol)), interContent);
