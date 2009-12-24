@@ -143,17 +143,8 @@ public class DistMult {
 				throws IOException {
 
 			MultArgs args = new MultArgs(line.toString());
-			FileSystem f = FileSystem.get(conf);
-
-			DataInputStream aIs = f.open(new Path(Matrix.getPath(args.getA())));
-			DataInputStream bIs = f.open(new Path(Matrix.getPath(args.getB())));
-
-			Matrix a = Matrix.read(aIs);
-			Matrix b = Matrix.read(bIs);
-
-			aIs.close();
-			bIs.close();
-			f.close();
+			Matrix a = Matrix.readRemote(args.getA(), conf);
+			Matrix b = Matrix.readRemote(args.getB(), conf);
 
 			Matrix inter = Matrix.multiplyRemote(a.getName() + "_"
 					+ b.getName(), a, b, args.getRound(), conf);
