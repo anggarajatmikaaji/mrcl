@@ -87,7 +87,7 @@ public class DistMult {
 		int _round;
 
 		public MultArgs(String string) {
-			String[] words = string.split("/");
+			String[] words = string.split("__");
 			_a = words[0];
 			_b = words[1];
 			_round = Integer.parseInt(words[2]);
