@@ -47,7 +47,7 @@ public class DistMult {
 			JobConf job = new JobConf(DistMult.class);
 			job.setMapperClass(MultMap.class);
 			job.setReducerClass(MultReduce.class);
-			job.setCombinerClass(MultReduce.class);
+			job.setCombinerClass(MultCombine.class);
 			job.setInputFormat(TextInputFormat.class);
 			job.setMapOutputKeyClass(MultArgs.class);
 			job.setMapOutputValueClass(Matrix.class);
@@ -127,6 +127,48 @@ public class DistMult {
 
 	}
 
+	public static class MultCombine implements
+			Reducer<MultArgs, Matrix, MultArgs, Matrix> {
+		private Configuration conf;
+
+		@Override
+		public void reduce(MultArgs key, Iterator<Matrix> values,
+				OutputCollector<MultArgs, Matrix> output, Reporter reporter)
+				throws IOException {
+			Matrix value = values.next();
+			// Matrix.createRandomRemote("d", 1, 1, 1, conf);
+			int c = 0;
+			Matrix sum = Matrix.createFillRemote("/__tmp/sum/"
+					+ value.getName(), value.getRows(), value.getCols(), 0,
+					conf);
+
+			sum.writeRemote(conf);
+			sum = Matrix.addRemote("/__tmp/sum/" + value.getName(), sum, value,
+					conf);
+			sum.writeRemote(conf);
+			reporter.progress();
+
+			while (values.hasNext()) {
+				reporter.progress();
+				value = values.next();
+				sum = Matrix.addRemote("/__tmp/sum/" + value.getName(), sum,
+						value, conf);
+				sum.writeRemote(conf);
+			}
+
+			output.collect(key, sum);
+		}
+
+		@Override
+		public void configure(JobConf conf) {
+			this.conf = conf;
+		}
+
+		@Override
+		public void close() throws IOException {
+		}
+	}
+
 	public static class MultReduce implements
 			Reducer<MultArgs, Matrix, MultArgs, Matrix> {
 		private Configuration conf;
@@ -138,21 +180,25 @@ public class DistMult {
 			Matrix value = values.next();
 			// Matrix.createRandomRemote("d", 1, 1, 1, conf);
 			int c = 0;
-			String resultName = key.toString();
-			Matrix sum = Matrix.createFillRemote(resultName + c++, value
-					.getRows(), value.getCols(), 0, conf);
-			
+			Matrix sum = Matrix.createFillRemote("/__tmp/sum/"
+					+ value.getName(), value.getRows(), value.getCols(), 0,
+					conf);
+
 			sum.writeRemote(conf);
-			sum = Matrix.addRemote(resultName + c++, sum, value, conf);
+			sum = Matrix.addRemote("/__tmp/sum/" + value.getName(), sum, value,
+					conf);
 			sum.writeRemote(conf);
 			reporter.progress();
-			
+
 			while (values.hasNext()) {
 				reporter.progress();
 				value = values.next();
-				sum = Matrix.addRemote(resultName + c++, sum, value, conf);
+				sum = Matrix.addRemote("/__tmp/sum/" + value.getName(), sum,
+						value, conf);
 				sum.writeRemote(conf);
 			}
+			FileSystem fs = FileSystem.get(conf);
+			fs.rename(new Path(Matrix.getPath(sum.getName())), new Path(key.toString()));
 			
 			output.collect(key, sum);
 		}
