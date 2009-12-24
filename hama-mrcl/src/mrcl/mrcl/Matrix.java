@@ -328,7 +328,7 @@ public class Matrix implements Writable {
 	public static Matrix readRemote(String name, Configuration conf) {
 		try {
 			FileSystem fs = FileSystem.get(conf);
-			DataInputStream dis = fs.open(new Path(Matrix.getPath(name)));
+			DataInputStream dis = fs.open(new Path(Matrix.getDescPath(name)));
 			Matrix matrix = Matrix.read(dis);
 			dis.close();
 			fs.close();
