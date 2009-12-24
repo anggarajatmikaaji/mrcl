@@ -41,7 +41,7 @@ public class DistMult {
 			Matrix b = Matrix.createRandomRemote("b", n, n, 2, conf);
 			String jobName = makeJob(a, b, conf);
 			
-			JobConf job = new JobConf();
+			JobConf job = new JobConf(DistMult.class);
 			job.setMapperClass(MultMap.class);
 			job.setReducerClass(MultReduce.class);
 			job.setCombinerClass(MultReduce.class);
