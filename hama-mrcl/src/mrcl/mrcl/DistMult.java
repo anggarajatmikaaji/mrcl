@@ -198,7 +198,7 @@ public class DistMult {
 				sum.writeRemote(conf);
 			}
 			FileSystem fs = FileSystem.get(conf);
-			fs.rename(new Path(Matrix.getPath(sum.getName())), new Path(key.toString()));
+			fs.rename(new Path(Matrix.getPath(sum.getName())), new Path("/mrcl/matrix/" + key.toString()));
 			
 			output.collect(key, sum);
 		}
