@@ -219,7 +219,11 @@ public class Content implements Writable{
 	public void writeRemote(Configuration conf) {
 		try {
 			FileSystem fs = FileSystem.get(conf);
-			DataOutputStream dos = fs.create(new Path(_block.getBlockPath()));
+			Path p = new Path(_block.getBlockPath());
+			if (!fs.exists(p.getParent()))
+				fs.mkdirs(p.getParent());
+			DataOutputStream dos = fs.create(p);
+			
 			write(dos);
 			dos.close();
 		} catch (Exception e) {
