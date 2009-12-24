@@ -1,9 +1,7 @@
 package mrcl;
 
 import java.io.BufferedWriter;
-import java.io.DataInput;
 import java.io.DataInputStream;
-import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -93,55 +91,6 @@ public class DistMult {
 			return jobName;
 		} catch (Exception e) {
 			throw new RuntimeException(e);
-		}
-	}
-
-	public static class MultArgs implements Writable {
-		String _a;
-		String _b;
-		int _round;
-
-		public MultArgs(String string) {
-			String[] words = string.split("/");
-			_a = words[0];
-			_b = words[1];
-			_round = Integer.parseInt(words[2]);
-		}
-
-		public MultArgs(String a, String b, int round) {
-			_a = a;
-			_b = b;
-			_round = round;
-		}
-
-		public String toString() {
-			return String.format("%s/%s/%d", _a, _b, _round);
-		}
-
-		public String getA() {
-			return _a;
-		}
-
-		public String getB() {
-			return _b;
-		}
-
-		public int getRound() {
-			return _round;
-		}
-
-		@Override
-		public void readFields(DataInput input) throws IOException {
-			_a = input.readUTF();
-			_b = input.readUTF();
-			_round = input.readInt();
-		}
-
-		@Override
-		public void write(DataOutput output) throws IOException {
-			output.writeUTF(_a);
-			output.writeUTF(_b);
-			output.writeInt(_round);
 		}
 	}
 
