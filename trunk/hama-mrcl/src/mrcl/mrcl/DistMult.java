@@ -9,6 +9,7 @@ import java.util.Iterator;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
@@ -71,11 +72,12 @@ public class DistMult {
 			FileSystem fs = FileSystem.get(conf);
 			String jobName = String.format("/mrcl/jobs/mult/%s/%s", a
 					.getName(), b.getName());
-			DataOutputStream dos = fs.create(new Path(jobName));
-
+			FSDataOutputStream dos = fs.create(new Path(jobName));
 			int rounds = a.getBlockCols();
+			StringBuilder builder = new StringBuilder();
 			for (int round = 0; round < rounds; round++)
-				dos.writeUTF(new MultArgs(a.getName(), b.getName(), round).toString());
+				builder.append(new MultArgs(a.getName(), b.getName(), round).toString());
+			dos.writeUTF(builder.toString());
 			dos.close();
 			fs.close();
 			return jobName;
