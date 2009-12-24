@@ -37,8 +37,8 @@ public class DistMult {
 		try {
 			Configuration conf = new Configuration(true);
 			int n = 100;
-			Matrix a = Matrix.createRandomRemote("a", n, n, 1, conf);
-			Matrix b = Matrix.createRandomRemote("b", n, n, 2, conf);
+			Matrix a = Matrix.createRandomRemote("e", n, n, 1, conf);
+			Matrix b = Matrix.createRandomRemote("f", n, n, 2, conf);
 			String jobName = makeJob(a, b, conf);
 
 			JobConf job = new JobConf(DistMult.class);
@@ -155,8 +155,8 @@ public class DistMult {
 			bIs.close();
 			f.close();
 
-			Matrix inter = Matrix.multiplyRemote("c", a, b, args.getRound(),
-					conf);
+			Matrix inter = Matrix.multiplyRemote(a.getName() + "__"
+					+ b.getName(), a, b, args.getRound(), conf);
 
 			output.collect(new MultArgs(a.getName(), b.getName(), 0), inter);
 		}
