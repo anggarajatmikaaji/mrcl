@@ -1,9 +1,6 @@
 package mrcl;
 
-
 import java.nio.FloatBuffer;
-import java.util.ArrayList;
-import java.util.List;
 
 public class Matrix {
 	private String _name;
@@ -30,7 +27,10 @@ public class Matrix {
 		Matrix matrix = new Matrix(matrixName, rows, cols);
 		for (int blockRow = 0; blockRow <= matrix._blockRows; blockRow++) {
 			for (int blockCol = 0; blockCol <= matrix._blockCols; blockCol++) {
-				Block.createFill(matrix, blockRow, blockCol, fill);
+				Content content = Content.make(new Block(matrix,
+						blockRow, blockCol));
+				content.fill(fill);
+				content.write();
 			}
 		}
 		return matrix;
@@ -47,7 +47,10 @@ public class Matrix {
 		// MatrixBlockDescriptor.BLOCK_SIZE;
 		for (int blockRow = 0; blockRow <= matrix._blockRows; blockRow++) {
 			for (int blockCol = 0; blockCol <= matrix._blockCols; blockCol++) {
-				Block.createRandom(matrix, blockRow, blockCol, seed);
+				Content content = Content.make(new Block(matrix,
+						blockRow, blockCol));
+				content.randomize(seed);
+				content.write();
 			}
 		}
 
@@ -78,11 +81,15 @@ public class Matrix {
 
 			for (int bRow = 0; bRow < bRows; bRow++) {
 				for (int bCol = 0; bCol < bCols; bCol++) {
-					Block interBlock = Block.multiplyJava(inter, a.getBlock(
-							round, bCol), b.getBlock(bRow, round));
-					Block resultBlock = Block.add(result, result.getBlock(bRow,
-							bCol), interBlock);
-					resultBlock.write();
+					Content interContent = Content.multiplyJava(
+							inter, Content
+									.read(new Block(a, round, bCol)),
+							Content.read(new Block(b, bRow, round)));
+
+					Content resultContent = Content.add(result,
+							Content.read(new Block(result, bRow, bCol)),
+							interContent);
+					resultContent.write();
 				}
 			}
 		}
@@ -95,9 +102,10 @@ public class Matrix {
 		Matrix result = new Matrix(resultName, a.getRows(), a.getCols());
 		for (int bRow = 0; bRow < bRows; bRow++) {
 			for (int bCol = 0; bCol < bCols; bCol++) {
-				Block resultBlock = Block.add(result, a.getBlock(bRow, bCol), b
-						.getBlock(bRow, bCol));
-				resultBlock.write();
+				Content resultContent = Content.add(result,
+						Content.read(new Block(a, bRow, bCol)),
+						Content.read(new Block(b, bRow, bCol)));
+				resultContent.write();
 			}
 		}
 
@@ -132,10 +140,6 @@ public class Matrix {
 		return _cols;
 	}
 
-	public Block getBlock(int blockRow, int blockCol) {
-		return Block.read(this, blockRow, blockCol);
-	}
-
 	public FloatBuffer getFloatBuffer() {
 		FloatBuffer result = FloatBuffer.allocate(_cols * _rows);
 		for (int row = 0; row < _rows; row++) {
@@ -143,8 +147,9 @@ public class Matrix {
 				int from = Block.BLOCK_SIZE * bCol;
 				int to = Math.min(Block.BLOCK_SIZE * (bCol + 1), _cols);
 
-				Block block = Block.read(this, row / Block.BLOCK_SIZE, bCol);
-				float[] array = block.getRow(row % Block.BLOCK_SIZE);
+				Content content = Content.read(new Block(this, row
+						/ Block.BLOCK_SIZE, bCol));
+				float[] array = content.getRow(row % Block.BLOCK_SIZE);
 				for (int col = from, i = 0; col < to; col++, i++) {
 					result.put(array[i]);
 				}
@@ -161,8 +166,9 @@ public class Matrix {
 				int from = Block.BLOCK_SIZE * bCol;
 				int to = Math.min(Block.BLOCK_SIZE * (bCol + 1), _cols);
 
-				Block block = Block.read(this, row / Block.BLOCK_SIZE, bCol);
-				float[] array = block.getRow(row % Block.BLOCK_SIZE);
+				Content content = Content.read(new Block(this, row
+						/ Block.BLOCK_SIZE, bCol));
+				float[] array = content.getRow(row % Block.BLOCK_SIZE);
 				for (int col = from, i = 0; col < to; col++, i++) {
 					b.append(String.format("%10.3f\t", array[i]));
 				}
