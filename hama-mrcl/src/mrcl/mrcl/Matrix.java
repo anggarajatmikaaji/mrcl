@@ -212,7 +212,7 @@ public class Matrix implements Writable {
 		return _cols;
 	}
 
-	public FloatBuffer getFloatBuffer() {
+	public FloatBuffer getFloatBufferLocal() {
 		FloatBuffer result = FloatBuffer.allocate(_cols * _rows);
 		for (int row = 0; row < _rows; row++) {
 			for (int bCol = 0; bCol <= _blockCols; bCol++) {
@@ -230,8 +230,26 @@ public class Matrix implements Writable {
 
 		return result;
 	}
+	
+	public FloatBuffer getFloatBufferRemote(Configuration conf) {
+		FloatBuffer result = FloatBuffer.allocate(_cols * _rows);
+		for (int row = 0; row < _rows; row++) {
+			for (int bCol = 0; bCol <= _blockCols; bCol++) {
+				int from = Block.BLOCK_SIZE * bCol;
+				int to = Math.min(Block.BLOCK_SIZE * (bCol + 1), _cols);
 
-	public String getContentString() {
+				Content content = Content.readRemote(new Block(this, row
+						/ Block.BLOCK_SIZE, bCol), conf);
+				float[] array = content.getRow(row % Block.BLOCK_SIZE);
+				for (int col = from, i = 0; col < to; col++, i++) {
+					result.put(array[i]);
+				}
+			}
+		}
+		return result;
+	}
+
+	public String getContentStringLocal() {
 		StringBuilder b = new StringBuilder();
 		for (int row = 0; row < _rows; row++) {
 			for (int bCol = 0; bCol <= _blockCols; bCol++) {
@@ -351,4 +369,5 @@ public class Matrix implements Writable {
 	public static String getDescPath(String name) {
 		return getPath(name) + "/desc";
 	}
+
 }
