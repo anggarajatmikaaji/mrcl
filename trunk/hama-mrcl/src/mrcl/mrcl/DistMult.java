@@ -1,10 +1,12 @@
 package mrcl;
 
+import java.io.BufferedWriter;
 import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.util.Iterator;
 
 import org.apache.hadoop.conf.Configuration;
@@ -79,7 +81,9 @@ public class DistMult {
 				builder.append(
 						new MultArgs(a.getName(), b.getName(), round)
 								.toString()).append('\n');
-			dos.writeChars(builder.toString());
+			BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(dos.getWrappedStream()));
+			bw.write(builder.toString());
+			bw.close();
 			dos.close();
 			fs.close();
 			return jobName;
