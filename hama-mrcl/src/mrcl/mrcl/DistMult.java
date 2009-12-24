@@ -43,7 +43,7 @@ public class DistMult {
 			Matrix b = Matrix.createRandomRemote("bcd", n, n, 2, conf);
 			b.writeRemote(conf);
 			String jobName = makeJob(a, b, conf);
-			
+
 			JobConf job = new JobConf(DistMult.class);
 			job.setMapperClass(MultMap.class);
 			job.setReducerClass(MultReduce.class);
@@ -70,14 +70,16 @@ public class DistMult {
 	public String makeJob(Matrix a, Matrix b, Configuration conf) {
 		try {
 			FileSystem fs = FileSystem.get(conf);
-			String jobName = String.format("/mrcl/jobs/mult/%s/%s", a
-					.getName(), b.getName());
+			String jobName = String.format("/mrcl/jobs/mult/%s/%s",
+					a.getName(), b.getName());
 			FSDataOutputStream dos = fs.create(new Path(jobName));
 			int rounds = a.getBlockCols();
 			StringBuilder builder = new StringBuilder();
 			for (int round = 0; round < rounds; round++)
-				builder.append(new MultArgs(a.getName(), b.getName(), round).toString());
-			dos.writeUTF(builder.toString());
+				builder.append(
+						new MultArgs(a.getName(), b.getName(), round)
+								.toString()).append('\n');
+			dos.writeChars(builder.toString());
 			dos.close();
 			fs.close();
 			return jobName;
@@ -152,7 +154,7 @@ public class DistMult {
 			Matrix inter = Matrix.multiplyRemote(a.getName() + "_"
 					+ b.getName(), a, b, args.getRound(), conf);
 			inter.writeRemote(conf);
-			
+
 			output.collect(new MultArgs(a.getName(), b.getName(), 0), inter);
 		}
 
@@ -176,7 +178,7 @@ public class DistMult {
 				OutputCollector<MultArgs, Matrix> output, Reporter reporter)
 				throws IOException {
 			Matrix value = values.next();
-			//Matrix.createRandomRemote("d", 1, 1, 1, conf);
+			// Matrix.createRandomRemote("d", 1, 1, 1, conf);
 			Matrix sum = Matrix.createFillRemote(key.toString(), value
 					.getRows(), value.getCols(), 0, conf);
 			Matrix.addRemote(sum.getName(), sum, value, conf);
