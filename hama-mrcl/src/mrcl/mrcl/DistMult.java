@@ -67,7 +67,7 @@ public class DistMult {
 	public String makeJob(Matrix a, Matrix b, Configuration conf) {
 		try {
 			FileSystem fs = FileSystem.get(conf);
-			String jobName = String.format("mrcl/jobs/%s__mult__%s", a
+			String jobName = String.format("mrcl/jobs/mult/%s/%s", a
 					.getName(), b.getName());
 			DataOutputStream dos = fs.create(new Path(jobName));
 
@@ -89,7 +89,7 @@ public class DistMult {
 		int _round;
 
 		public MultArgs(String string) {
-			String[] words = string.split("__");
+			String[] words = string.split("/");
 			_a = words[0];
 			_b = words[1];
 			_round = Integer.parseInt(words[2]);
@@ -102,7 +102,7 @@ public class DistMult {
 		}
 
 		public String toString() {
-			return String.format("%s__%s__%d", _a, _b, _round);
+			return String.format("%s/%s/%d", _a, _b, _round);
 		}
 
 		public String getA() {
