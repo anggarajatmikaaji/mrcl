@@ -7,8 +7,8 @@ import java.util.Arrays;
 public class MatrixTest {
 	public void testSome() {
 		int n = 100;
-		Matrix a = Matrix.createRandom("a", n, n, 2);
-		Matrix b = Matrix.createRandom("b", n, n, 3);
+		Matrix a = Matrix.createRandomLocal("a", n, n, 2);
+		Matrix b = Matrix.createRandomLocal("b", n, n, 3);
 		
 		FloatBuffer result = FloatBuffer.allocate(a.getRows() * b.getCols());
 		Content.sgemmJava(n, 1, a.getFloatBuffer(), b.getFloatBuffer(), 0, result);
