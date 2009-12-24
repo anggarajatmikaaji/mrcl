@@ -343,6 +343,6 @@ public class Matrix implements Writable {
 	}
 
 	public static String getDescPath(String name){
-		return getPath(name) + "/desc";
+		return getPath(name) + "desc";
 	}
 }

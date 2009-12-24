@@ -37,9 +37,9 @@ public class DistMult {
 		try {
 			Configuration conf = new Configuration(true);
 			int n = 100;
-			Matrix a = Matrix.createRandomRemote("e", n, n, 1, conf);
+			Matrix a = Matrix.createRandomRemote("a", n, n, 1, conf);
 			a.writeRemote(conf);
-			Matrix b = Matrix.createRandomRemote("f", n, n, 2, conf);
+			Matrix b = Matrix.createRandomRemote("b", n, n, 2, conf);
 			b.writeRemote(conf);
 			String jobName = makeJob(a, b, conf);
 
@@ -137,12 +137,13 @@ public class DistMult {
 	public static class MultMap implements
 			Mapper<LongWritable, Text, MultArgs, Matrix> {
 
-		private JobConf conf;
+		private Configuration conf;
 
 		@Override
 		public void map(LongWritable lineNo, Text line,
 				OutputCollector<MultArgs, Matrix> output, Reporter reporter)
 				throws IOException {
+			conf = new Configuration(true);
 
 			MultArgs args = new MultArgs(line.toString());
 			Matrix a = Matrix.readRemote(args.getA(), conf);
