@@ -106,9 +106,9 @@ public class Content implements Writable {
 		return content;
 	}
 
-	public static Content multiplyJava(Matrix matrix, Content a, Content b) {
-		Block block = new Block(matrix, a._block.getBlockRow(), b._block
-				.getBlockCol());
+	public static Content multiplyJava(Block block, Content a, Content b) {
+//		Block block = new Block(matrix, a._block.getBlockRow(), b._block
+//				.getBlockCol());
 		Content content = new Content(block);
 		sgemmJava(Block.BLOCK_SIZE, 1, a._floatBuffer, b._floatBuffer, 0,
 				content._floatBuffer);
