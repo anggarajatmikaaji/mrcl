@@ -11,10 +11,10 @@ public class MatrixTest {
 		Matrix b = Matrix.createRandomLocal("b", n, n, 3);
 		
 		FloatBuffer result = FloatBuffer.allocate(a.getRows() * b.getCols());
-		Content.sgemmJava(n, 1, a.getFloatBuffer(), b.getFloatBuffer(), 0, result);
+		Content.sgemmJava(n, 1, a.getFloatBufferLocal(), b.getFloatBufferLocal(), 0, result);
 		
 		Matrix c = Matrix.multiplyLocal("c", a, b);
-		FloatBuffer cData = c.getFloatBuffer();
+		FloatBuffer cData = c.getFloatBufferLocal();
 		int size = cData.limit();
 		
 		for (int i = 0; i < size; i++){
