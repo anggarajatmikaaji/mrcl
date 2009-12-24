@@ -205,6 +205,7 @@ public class Content implements Writable {
 			
 			write(dos);
 			dos.close();
+			fs.close();
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -237,6 +238,7 @@ public class Content implements Writable {
 			DataInputStream dis = fs.open(new Path(block.getBlockPath()));
 			content.readFields(dis);
 			dis.close();
+			fs.close();
 			return content;
 		} catch (Exception e) {
 			throw new RuntimeException(e);

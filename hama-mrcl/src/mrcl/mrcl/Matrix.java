@@ -319,6 +319,8 @@ public class Matrix implements Writable {
 			FileSystem fs = FileSystem.get(conf);
 			DataInputStream dis = fs.open(new Path(Matrix.getPath(name)));
 			Matrix matrix = Matrix.read(dis);
+			dis.close();
+			fs.close();
 			return matrix;
 		} catch (Exception e) {
 			throw new RuntimeException(e);
