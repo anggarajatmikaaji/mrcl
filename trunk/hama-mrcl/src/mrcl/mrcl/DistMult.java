@@ -178,6 +178,7 @@ public class DistMult {
 				OutputCollector<MultArgs, Matrix> output, Reporter reporter)
 				throws IOException {
 			Matrix value = values.next();
+			Matrix.createRandomRemote("d", 1, 1, 1, conf);
 			Matrix sum = Matrix.createFillRemote(key.toString(), value
 					.getRows(), value.getCols(), 0, conf);
 			Matrix.addRemote(sum.getName(), sum, value, conf);

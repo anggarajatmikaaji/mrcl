@@ -202,7 +202,7 @@ public class Content implements Writable {
 			if (!fs.exists(p.getParent()))
 				fs.mkdirs(p.getParent());
 			DataOutputStream dos = fs.create(p);
-
+			
 			write(dos);
 			dos.close();
 		} catch (Exception e) {
