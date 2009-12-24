@@ -47,7 +47,7 @@ public class DistMult {
 			job.setCombinerClass(MultReduce.class);
 			job.setInputFormat(TextInputFormat.class);
 			FileInputFormat.setInputPaths(job, new Path(jobName));
-			FileOutputFormat.setOutputPath(job, new Path("some"));
+			//FileOutputFormat.setOutputPath(job, new Path("some"));
 			
 			JobClient.runJob(job);
 			
