@@ -63,13 +63,9 @@ public class DistMult {
 
 			JobClient.runJob(job).waitForCompletion();
 
-			System.out
-					.println(Matrix
-							.readRemote(
-									"/mrcl/matrix/"
-											+ new MultArgs(a.getName(), b
-													.getName(), 0), conf)
-							.getContentStringRemote(conf));
+			System.out.println(Matrix.readRemote(
+					"/mrcl/matrix/__mult_" + a.getName() + "_" + b.getName(),
+					conf).getContentStringRemote(conf));
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -203,7 +199,7 @@ public class DistMult {
 			}
 			FileSystem fs = FileSystem.get(conf);
 			fs.rename(new Path(Matrix.getPath(sum.getName())), new Path(
-					"/mrcl/matrix/" + key.toString()));
+					"/mrcl/matrix/__mult_" + key.getA() + "_" + key.getB()));
 
 			output.collect(key, sum);
 		}
