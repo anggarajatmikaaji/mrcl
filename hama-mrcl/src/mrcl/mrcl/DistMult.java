@@ -144,12 +144,14 @@ public class DistMult {
 			
 			sum.writeRemote(conf);
 			sum = Matrix.addRemote(resultName + c++, sum, value, conf);
+			sum.writeRemote(conf);
 			reporter.progress();
 			
 			while (values.hasNext()) {
 				reporter.progress();
 				value = values.next();
 				sum = Matrix.addRemote(resultName + c++, sum, value, conf);
+				sum.writeRemote(conf);
 			}
 			
 			output.collect(key, sum);
