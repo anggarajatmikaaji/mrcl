@@ -20,7 +20,7 @@ public class MultArgs implements WritableComparable<MultArgs> {
 	}
 	
 	public MultArgs(String string) {
-		String[] words = string.split("/");
+		String[] words = string.split("-");
 		_a = words[0];
 		_b = words[1];
 		_round = Integer.parseInt(words[2]);
@@ -33,7 +33,7 @@ public class MultArgs implements WritableComparable<MultArgs> {
 	}
 
 	public String toString() {
-		return String.format("%s/%s/%d", _a, _b, _round);
+		return String.format("%s-%s-%d", _a, _b, _round);
 	}
 
 	public String getA() {

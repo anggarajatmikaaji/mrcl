@@ -83,7 +83,8 @@ public class DistMult {
 				builder.append(
 						new MultArgs(a.getName(), b.getName(), round)
 								.toString()).append('\n');
-			BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(dos.getWrappedStream()));
+			BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(dos
+					.getWrappedStream()));
 			bw.write(builder.toString());
 			bw.close();
 			dos.close();
@@ -136,16 +137,21 @@ public class DistMult {
 				throws IOException {
 			Matrix value = values.next();
 			// Matrix.createRandomRemote("d", 1, 1, 1, conf);
-			Matrix sum = Matrix.createFillRemote(key.toString(), value
+			int c = 0;
+			String resultName = key.toString();
+			Matrix sum = Matrix.createFillRemote(resultName + c++, value
 					.getRows(), value.getCols(), 0, conf);
+			
 			sum.writeRemote(conf);
-			Matrix.addRemote(sum.getName(), sum, value, conf);
+			sum = Matrix.addRemote(resultName + c++, sum, value, conf);
+			reporter.progress();
 			
 			while (values.hasNext()) {
+				reporter.progress();
 				value = values.next();
-				Matrix.addRemote(sum.getName(), sum, value, conf);
+				sum = Matrix.addRemote(resultName + c++, sum, value, conf);
 			}
-
+			
 			output.collect(key, sum);
 		}
 
