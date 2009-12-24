@@ -92,7 +92,7 @@ public class Matrix implements Writable {
 				content.writeRemote(conf);
 			}
 		}
-		return null;
+		return matrix;
 	}
 
 	public static Matrix multiplyLocal(String resultName, Matrix a, Matrix b) {
