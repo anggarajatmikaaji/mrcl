@@ -121,7 +121,8 @@ public class Matrix implements Writable {
 
 			for (int bRow = 0; bRow < bRows; bRow++) {
 				for (int bCol = 0; bCol < bCols; bCol++) {
-					Content interContent = Content.multiplyJava(inter, Content
+					Block interBlock = new Block(inter, bRow, bCol);
+					Content interContent = Content.multiplyJava(interBlock, Content
 							.readLocal(new Block(a, round, bCol)), Content
 							.readLocal(new Block(b, bRow, round)));
 
@@ -151,7 +152,8 @@ public class Matrix implements Writable {
 
 		for (int bRow = 0; bRow < bRows; bRow++) {
 			for (int bCol = 0; bCol < bCols; bCol++) {
-				Content interContent = Content.multiplyJava(inter, Content
+				Block interBlock = new Block(inter, bRow, bCol);
+				Content interContent = Content.multiplyJava(interBlock, Content
 						.readRemote(new Block(a, round, bCol), conf), Content
 						.readRemote(new Block(b, bRow, round), conf));
 				interContent.writeRemote(conf);
