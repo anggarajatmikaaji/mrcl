@@ -42,7 +42,7 @@ public class DistMult {
 			Matrix b = Matrix.createRandomRemote("b", n, n, 2, conf);
 			b.writeRemote(conf);
 			String jobName = makeJob(a, b, conf);
-
+			
 			JobConf job = new JobConf(DistMult.class);
 			job.setMapperClass(MultMap.class);
 			job.setReducerClass(MultReduce.class);
@@ -143,7 +143,6 @@ public class DistMult {
 		public void map(LongWritable lineNo, Text line,
 				OutputCollector<MultArgs, Matrix> output, Reporter reporter)
 				throws IOException {
-			conf = new Configuration(true);
 
 			MultArgs args = new MultArgs(line.toString());
 			Matrix a = Matrix.readRemote(args.getA(), conf);
