@@ -4,6 +4,7 @@
 package mrcl;
 
 import java.io.DataInput;
+import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -26,7 +27,7 @@ import jcuda.Pointer;
 import jcuda.Sizeof;
 import jcuda.jcublas.JCublas;
 
-public class Content implements Writable{
+public class Content implements Writable {
 	private ByteBuffer _byteBuffer;
 	private FloatBuffer _floatBuffer;
 	private Block _block;
@@ -41,12 +42,6 @@ public class Content implements Writable{
 
 	public static Content make(Block block) {
 		return new Content(block);
-	}
-
-	public static Content read(Block block) {
-		Content content = new Content(block);
-		content.readLocal();
-		return content;
 	}
 
 	public void fill(float fillValue) {
@@ -85,7 +80,7 @@ public class Content implements Writable{
 				f.createNewFile();
 			FileOutputStream fos = new FileOutputStream(f);
 			FileChannel fc = fos.getChannel();
-			//fc.position(0);
+			// fc.position(0);
 			fc.write(_byteBuffer);
 			fc.close();
 			fos.close();
@@ -93,23 +88,7 @@ public class Content implements Writable{
 			throw new RuntimeException(e);
 		}
 	}
-	
-	public void readLocal() {
-		try {
-			FileInputStream fis = new FileInputStream(_block.getBlockPath());
-			FileChannel fc = fis.getChannel();
-			_byteBuffer = ByteBuffer.allocate(Block.BLOCK_SIZE_2 * 4);
-			fc.read(_byteBuffer);
-			_byteBuffer.rewind();
-			_floatBuffer = _byteBuffer.asFloatBuffer();
-			_floatBuffer.rewind();
-			fc.close();
-			fis.close();
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
-	
+
 	public float[] getRow(int row) {
 		float[] ret = new float[_block.getInnerCols()];
 		_floatBuffer.position(Block.BLOCK_SIZE * row);
@@ -223,9 +202,42 @@ public class Content implements Writable{
 			if (!fs.exists(p.getParent()))
 				fs.mkdirs(p.getParent());
 			DataOutputStream dos = fs.create(p);
-			
+
 			write(dos);
 			dos.close();
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	public static Content readLocal(Block block) {
+		try {
+			Content content = new Content(block);
+			FileInputStream fis = new FileInputStream(content._block
+					.getBlockPath());
+			FileChannel fc = fis.getChannel();
+			content._byteBuffer = ByteBuffer.allocate(Block.BLOCK_SIZE_2 * 4);
+			fc.read(content._byteBuffer);
+			content._byteBuffer.rewind();
+			content._floatBuffer = content._byteBuffer.asFloatBuffer();
+			content._floatBuffer.rewind();
+			fc.close();
+			fis.close();
+			return content;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	public static Content readRemote(Block block, Configuration conf) {
+		try {
+			Content content = new Content(block);
+			FileSystem fs;
+			fs = FileSystem.get(conf);
+			DataInputStream dis = fs.open(new Path(block.getBlockPath()));
+			content.readFields(dis);
+			dis.close();
+			return content;
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}

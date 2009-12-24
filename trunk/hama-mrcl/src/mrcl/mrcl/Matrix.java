@@ -1,12 +1,15 @@
 package mrcl;
 
 import java.io.DataInput;
+import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.nio.FloatBuffer;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Writable;
 
 public class Matrix implements Writable {
@@ -60,8 +63,8 @@ public class Matrix implements Writable {
 		return matrix;
 	}
 
-	public static Matrix createRandom(String matrixName, int rows, int cols,
-			long seed) {
+	public static Matrix createRandomLocal(String matrixName, int rows,
+			int cols, long seed) {
 		Matrix matrix = new Matrix(matrixName, rows, cols);
 		// ./matrix/MATRIX_NAME/descriptor // descriptor, which contains size
 		// ./matrix/MATRIX_NAME/blocks/0/0 // block data
@@ -116,11 +119,12 @@ public class Matrix implements Writable {
 			for (int bRow = 0; bRow < bRows; bRow++) {
 				for (int bCol = 0; bCol < bCols; bCol++) {
 					Content interContent = Content.multiplyJava(inter, Content
-							.read(new Block(a, round, bCol)), Content
-							.read(new Block(b, bRow, round)));
+							.readLocal(new Block(a, round, bCol)), Content
+							.readLocal(new Block(b, bRow, round)));
 
 					Content resultContent = Content.add(result, Content
-							.read(new Block(result, bRow, bCol)), interContent);
+							.readLocal(new Block(result, bRow, bCol)),
+							interContent);
 					resultContent.writeLocal();
 				}
 			}
@@ -145,8 +149,8 @@ public class Matrix implements Writable {
 		for (int bRow = 0; bRow < bRows; bRow++) {
 			for (int bCol = 0; bCol < bCols; bCol++) {
 				Content interContent = Content.multiplyJava(inter, Content
-						.read(new Block(a, round, bCol)), Content
-						.read(new Block(b, bRow, round)));
+						.readRemote(new Block(a, round, bCol), conf), Content
+						.readRemote(new Block(b, bRow, round), conf));
 				//
 				// Content resultContent = Content.add(result, Content
 				// .read(new Block(result, bRow, bCol)), interContent);
@@ -163,8 +167,8 @@ public class Matrix implements Writable {
 		for (int bRow = 0; bRow < bRows; bRow++) {
 			for (int bCol = 0; bCol < bCols; bCol++) {
 				Content resultContent = Content.add(result, Content
-						.read(new Block(a, bRow, bCol)), Content
-						.read(new Block(b, bRow, bCol)));
+						.readLocal(new Block(a, bRow, bCol)), Content
+						.readLocal(new Block(b, bRow, bCol)));
 				resultContent.writeLocal();
 			}
 		}
@@ -207,7 +211,7 @@ public class Matrix implements Writable {
 				int from = Block.BLOCK_SIZE * bCol;
 				int to = Math.min(Block.BLOCK_SIZE * (bCol + 1), _cols);
 
-				Content content = Content.read(new Block(this, row
+				Content content = Content.readLocal(new Block(this, row
 						/ Block.BLOCK_SIZE, bCol));
 				float[] array = content.getRow(row % Block.BLOCK_SIZE);
 				for (int col = from, i = 0; col < to; col++, i++) {
@@ -226,8 +230,28 @@ public class Matrix implements Writable {
 				int from = Block.BLOCK_SIZE * bCol;
 				int to = Math.min(Block.BLOCK_SIZE * (bCol + 1), _cols);
 
-				Content content = Content.read(new Block(this, row
+				Content content = Content.readLocal(new Block(this, row
 						/ Block.BLOCK_SIZE, bCol));
+				float[] array = content.getRow(row % Block.BLOCK_SIZE);
+				for (int col = from, i = 0; col < to; col++, i++) {
+					b.append(String.format("%10.3f\t", array[i]));
+				}
+			}
+			b.append('\n');
+		}
+
+		return b.toString();
+	}
+
+	public String getContentStringRemote(Configuration conf) {
+		StringBuilder b = new StringBuilder();
+		for (int row = 0; row < _rows; row++) {
+			for (int bCol = 0; bCol <= _blockCols; bCol++) {
+				int from = Block.BLOCK_SIZE * bCol;
+				int to = Math.min(Block.BLOCK_SIZE * (bCol + 1), _cols);
+
+				Content content = Content.readRemote(new Block(this, row
+						/ Block.BLOCK_SIZE, bCol), conf);
 				float[] array = content.getRow(row % Block.BLOCK_SIZE);
 				for (int col = from, i = 0; col < to; col++, i++) {
 					b.append(String.format("%10.3f\t", array[i]));
@@ -280,14 +304,25 @@ public class Matrix implements Writable {
 		Matrix result = new Matrix(resultName, a.getRows(), a.getCols());
 		for (int bRow = 0; bRow < bRows; bRow++) {
 			for (int bCol = 0; bCol < bCols; bCol++) {
-				Content resultContent = Content.add(result, Content
-						.read(new Block(a, bRow, bCol)), Content
-						.read(new Block(b, bRow, bCol)));
+				Content resultContent = Content.add(result, Content.readRemote(
+						new Block(a, bRow, bCol), conf), Content.readRemote(
+						new Block(b, bRow, bCol), conf));
 				resultContent.writeRemote(conf);
 			}
 		}
 
 		return result;
+	}
+
+	public static Matrix readRemote(String name, Configuration conf) {
+		try {
+			FileSystem fs = FileSystem.get(conf);
+			DataInputStream dis = fs.open(new Path(Matrix.getPath(name)));
+			Matrix matrix = Matrix.read(dis);
+			return matrix;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 }

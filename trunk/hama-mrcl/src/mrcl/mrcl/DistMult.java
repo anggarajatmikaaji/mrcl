@@ -32,15 +32,15 @@ public class DistMult {
 	public static void main(String[] args) {
 		new DistMult().run();
 	}
-	
-	public void run(){
+
+	public void run() {
 		try {
 			Configuration conf = new Configuration(true);
 			int n = 100;
 			Matrix a = Matrix.createRandomRemote("a", n, n, 1, conf);
 			Matrix b = Matrix.createRandomRemote("b", n, n, 2, conf);
 			String jobName = makeJob(a, b, conf);
-			
+
 			JobConf job = new JobConf(DistMult.class);
 			job.setMapperClass(MultMap.class);
 			job.setReducerClass(MultReduce.class);
@@ -52,26 +52,29 @@ public class DistMult {
 			if (fs.exists(outDir))
 				fs.delete(outDir, true);
 			FileOutputFormat.setOutputPath(job, outDir);
-			
-			JobClient.runJob(job);
-			
+
+			JobClient.runJob(job).waitForCompletion();
+
+			System.out.println(Matrix.readRemote(
+					new MultArgs(a.getName(), b.getName(), 0).toString(), conf)
+					.getContentStringRemote(conf));
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
 	public String makeJob(Matrix a, Matrix b, Configuration conf) {
 		try {
 			FileSystem fs = FileSystem.get(conf);
-			String jobName = String.format(
-					"mrcl/jobs/%s__mult__%s", a.getName(), b.getName());
+			String jobName = String.format("mrcl/jobs/%s__mult__%s", a
+					.getName(), b.getName());
 			DataOutputStream dos = fs.create(new Path(jobName));
 
 			int rounds = a.getBlockCols();
 			for (int round = 0; round < rounds; round++)
 				dos.writeUTF(new MultArgs(a.getName(), b.getName(), round)
 						+ "\n");
-			
+
 			return jobName;
 		} catch (Exception e) {
 			throw new RuntimeException(e);
