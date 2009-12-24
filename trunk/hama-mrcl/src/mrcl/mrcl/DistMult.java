@@ -138,8 +138,9 @@ public class DistMult {
 			// Matrix.createRandomRemote("d", 1, 1, 1, conf);
 			Matrix sum = Matrix.createFillRemote(key.toString(), value
 					.getRows(), value.getCols(), 0, conf);
+			sum.writeRemote(conf);
 			Matrix.addRemote(sum.getName(), sum, value, conf);
-
+			
 			while (values.hasNext()) {
 				value = values.next();
 				Matrix.addRemote(sum.getName(), sum, value, conf);

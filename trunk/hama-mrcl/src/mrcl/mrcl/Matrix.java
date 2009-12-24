@@ -122,11 +122,12 @@ public class Matrix implements Writable {
 			for (int bRow = 0; bRow < bRows; bRow++) {
 				for (int bCol = 0; bCol < bCols; bCol++) {
 					Block interBlock = new Block(inter, bRow, bCol);
-					Content interContent = Content.multiplyJava(interBlock, Content
-							.readLocal(new Block(a, round, bCol)), Content
-							.readLocal(new Block(b, bRow, round)));
+					Content interContent = Content.multiplyJava(interBlock,
+							Content.readLocal(new Block(a, round, bCol)),
+							Content.readLocal(new Block(b, bRow, round)));
 
-					Content resultContent = Content.add(result, Content
+					Block resultBlock = new Block(result, bRow, bCol);
+					Content resultContent = Content.add(resultBlock, Content
 							.readLocal(new Block(result, bRow, bCol)),
 							interContent);
 					resultContent.writeLocal();
@@ -172,7 +173,8 @@ public class Matrix implements Writable {
 		Matrix result = new Matrix(resultName, a.getRows(), a.getCols());
 		for (int bRow = 0; bRow < bRows; bRow++) {
 			for (int bCol = 0; bCol < bCols; bCol++) {
-				Content resultContent = Content.add(result, Content
+				Block resultBlock = new Block(result, bRow, bCol);
+				Content resultContent = Content.add(resultBlock, Content
 						.readLocal(new Block(a, bRow, bCol)), Content
 						.readLocal(new Block(b, bRow, bCol)));
 				resultContent.writeLocal();
@@ -318,9 +320,10 @@ public class Matrix implements Writable {
 		Matrix result = new Matrix(resultName, a.getRows(), a.getCols());
 		for (int bRow = 0; bRow < bRows; bRow++) {
 			for (int bCol = 0; bCol < bCols; bCol++) {
-				Content resultContent = Content.add(result, Content.readRemote(
-						new Block(a, bRow, bCol), conf), Content.readRemote(
-						new Block(b, bRow, bCol), conf));
+				Block resultBlock = new Block(result, bRow, bCol);
+				Content resultContent = Content.add(resultBlock, Content
+						.readRemote(new Block(a, bRow, bCol), conf), Content
+						.readRemote(new Block(b, bRow, bCol), conf));
 				resultContent.writeRemote(conf);
 			}
 		}
