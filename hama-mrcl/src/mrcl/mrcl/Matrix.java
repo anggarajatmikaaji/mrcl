@@ -268,7 +268,7 @@ public class Matrix implements Writable {
 	}
 
 	public static String getPath(String name) {
-		return "/mrcl/_matrix/" + name;
+		return "/mrcl/_matrix_/_" + name;
 	}
 
 	@Override
