@@ -51,6 +51,7 @@ public class DistMult {
 			Path outDir = new Path("some");
 			if (fs.exists(outDir))
 				fs.delete(outDir, true);
+			fs.close();
 			FileOutputFormat.setOutputPath(job, outDir);
 
 			JobClient.runJob(job).waitForCompletion();
@@ -74,7 +75,8 @@ public class DistMult {
 			for (int round = 0; round < rounds; round++)
 				dos.writeUTF(new MultArgs(a.getName(), b.getName(), round)
 						+ "\n");
-
+			dos.close();
+			fs.close();
 			return jobName;
 		} catch (Exception e) {
 			throw new RuntimeException(e);
@@ -151,6 +153,7 @@ public class DistMult {
 
 			aIs.close();
 			bIs.close();
+			f.close();
 
 			Matrix inter = Matrix.multiplyRemote("c", a, b, args.getRound(),
 					conf);
