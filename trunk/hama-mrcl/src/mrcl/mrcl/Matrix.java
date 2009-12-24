@@ -147,7 +147,7 @@ public class Matrix implements Writable {
 
 		// make intermediate results
 		Matrix inter = Matrix.createFillRemote(String.format("__tmp/%s_%d",
-				round, resultName), rows, cols, 0, conf);
+				resultName, round), rows, cols, 0, conf);
 
 		for (int bRow = 0; bRow < bRows; bRow++) {
 			for (int bCol = 0; bCol < bCols; bCol++) {
@@ -286,8 +286,8 @@ public class Matrix implements Writable {
 		output.writeInt(_rows);
 		output.writeInt(_cols);
 	}
-	
-	public void writeRemote(Configuration conf){
+
+	public void writeRemote(Configuration conf) {
 		try {
 			FileSystem fs = FileSystem.get(conf);
 			DataOutputStream dos = fs.create(new Path(getDescPath(_name)));
@@ -338,12 +338,12 @@ public class Matrix implements Writable {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
 	public static String getPath(String name) {
 		return "/mrcl/matrix/" + name;
 	}
 
-	public static String getDescPath(String name){
+	public static String getDescPath(String name) {
 		return getPath(name) + "/desc";
 	}
 }
