@@ -1,13 +1,23 @@
 package mrcl;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 import java.nio.FloatBuffer;
 
-public class Matrix {
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.io.Writable;
+
+public class Matrix implements Writable {
 	private String _name;
 	private int _cols;
 	private int _rows;
 	private int _blockRows;
 	private int _blockCols;
+
+	private Matrix() {
+	}
 
 	public Matrix(String matrixName, int rows, int cols) {
 		_name = matrixName;
@@ -27,10 +37,24 @@ public class Matrix {
 		Matrix matrix = new Matrix(matrixName, rows, cols);
 		for (int blockRow = 0; blockRow <= matrix._blockRows; blockRow++) {
 			for (int blockCol = 0; blockCol <= matrix._blockCols; blockCol++) {
-				Content content = Content.make(new Block(matrix,
-						blockRow, blockCol));
+				Content content = Content.make(new Block(matrix, blockRow,
+						blockCol));
 				content.fill(fill);
-				content.write();
+				content.writeLocal();
+			}
+		}
+		return matrix;
+	}
+
+	public static Matrix createFillRemote(String matrixName, int rows,
+			int cols, float fill, Configuration conf) {
+		Matrix matrix = new Matrix(matrixName, rows, cols);
+		for (int blockRow = 0; blockRow <= matrix._blockRows; blockRow++) {
+			for (int blockCol = 0; blockCol <= matrix._blockCols; blockCol++) {
+				Content content = Content.make(new Block(matrix, blockRow,
+						blockCol));
+				content.fill(fill);
+				content.writeRemote(conf);
 			}
 		}
 		return matrix;
@@ -47,21 +71,35 @@ public class Matrix {
 		// MatrixBlockDescriptor.BLOCK_SIZE;
 		for (int blockRow = 0; blockRow <= matrix._blockRows; blockRow++) {
 			for (int blockCol = 0; blockCol <= matrix._blockCols; blockCol++) {
-				Content content = Content.make(new Block(matrix,
-						blockRow, blockCol));
+				Content content = Content.make(new Block(matrix, blockRow,
+						blockCol));
 				content.randomize(seed);
-				content.write();
+				content.writeLocal();
 			}
 		}
-
 		return matrix;
 	}
 
-	public static Matrix multiply(String resultName, Matrix a, Matrix b) {
-		return multiply(resultName, a, b, 0, a.getBlockCols());
+	public static Matrix createRandomRemote(String matrixName, int rows,
+			int cols, int seed, Configuration conf) {
+		Matrix matrix = new Matrix(matrixName, rows, cols);
+
+		for (int blockRow = 0; blockRow <= matrix._blockRows; blockRow++) {
+			for (int blockCol = 0; blockCol <= matrix._blockCols; blockCol++) {
+				Content content = Content.make(new Block(matrix, blockRow,
+						blockCol));
+				content.randomize(seed);
+				content.writeRemote(conf);
+			}
+		}
+		return null;
 	}
 
-	public static Matrix multiply(String resultName, Matrix a, Matrix b,
+	public static Matrix multiplyLocal(String resultName, Matrix a, Matrix b) {
+		return multiplyLocal(resultName, a, b, 0, a.getBlockCols());
+	}
+
+	public static Matrix multiplyLocal(String resultName, Matrix a, Matrix b,
 			int fromRound, int toRound) {
 		int rows = a.getRows();
 		int cols = b.getCols();
@@ -70,10 +108,6 @@ public class Matrix {
 
 		Matrix result = Matrix.createFill(resultName, rows, cols, 0);
 
-		// map
-
-		// List<Matrix> interList = new ArrayList<Matrix>();
-
 		for (int round = fromRound; round < toRound; round++) {
 			// make intermediate results
 			Matrix inter = Matrix.createFill("__inter__" + resultName, rows,
@@ -81,19 +115,45 @@ public class Matrix {
 
 			for (int bRow = 0; bRow < bRows; bRow++) {
 				for (int bCol = 0; bCol < bCols; bCol++) {
-					Content interContent = Content.multiplyJava(
-							inter, Content
-									.read(new Block(a, round, bCol)),
-							Content.read(new Block(b, bRow, round)));
+					Content interContent = Content.multiplyJava(inter, Content
+							.read(new Block(a, round, bCol)), Content
+							.read(new Block(b, bRow, round)));
 
-					Content resultContent = Content.add(result,
-							Content.read(new Block(result, bRow, bCol)),
-							interContent);
-					resultContent.write();
+					Content resultContent = Content.add(result, Content
+							.read(new Block(result, bRow, bCol)), interContent);
+					resultContent.writeLocal();
 				}
 			}
 		}
 		return result;
+	}
+
+	public static Matrix multiplyRemote(String resultName, Matrix a, Matrix b,
+			int round, Configuration conf) {
+		int rows = a.getRows();
+		int cols = b.getCols();
+		int bRows = a.getBlockRows();
+		int bCols = b.getBlockCols();
+
+		// Matrix result = Matrix
+		// .createFillRemote(resultName, rows, cols, 0, conf);
+
+		// make intermediate results
+		Matrix inter = Matrix.createFillRemote(String.format("__inter__%d__%s",
+				round, resultName), rows, cols, 0, conf);
+
+		for (int bRow = 0; bRow < bRows; bRow++) {
+			for (int bCol = 0; bCol < bCols; bCol++) {
+				Content interContent = Content.multiplyJava(inter, Content
+						.read(new Block(a, round, bCol)), Content
+						.read(new Block(b, bRow, round)));
+				//
+				// Content resultContent = Content.add(result, Content
+				// .read(new Block(result, bRow, bCol)), interContent);
+				// resultContent.writeRemote(conf);
+			}
+		}
+		return inter;
 	}
 
 	public static Matrix add(String resultName, Matrix a, Matrix b) {
@@ -102,10 +162,10 @@ public class Matrix {
 		Matrix result = new Matrix(resultName, a.getRows(), a.getCols());
 		for (int bRow = 0; bRow < bRows; bRow++) {
 			for (int bCol = 0; bCol < bCols; bCol++) {
-				Content resultContent = Content.add(result,
-						Content.read(new Block(a, bRow, bCol)),
-						Content.read(new Block(b, bRow, bCol)));
-				resultContent.write();
+				Content resultContent = Content.add(result, Content
+						.read(new Block(a, bRow, bCol)), Content
+						.read(new Block(b, bRow, bCol)));
+				resultContent.writeLocal();
 			}
 		}
 
@@ -125,7 +185,7 @@ public class Matrix {
 	}
 
 	public String matrixPath() {
-		return "mrcl/matrix/" + _name;
+		return getPath(_name);
 	}
 
 	public String matrixDescPath() {
@@ -181,6 +241,53 @@ public class Matrix {
 
 	public String getName() {
 		return _name;
+	}
+
+	public static String getPath(String name) {
+		return "/mrcl/matrix/" + name;
+	}
+
+	@Override
+	public void readFields(DataInput input) throws IOException {
+		_name = input.readUTF();
+		_rows = input.readInt();
+		_cols = input.readInt();
+		_blockRows = _rows / Block.BLOCK_SIZE;
+		_blockCols = _cols / Block.BLOCK_SIZE;
+	}
+
+	@Override
+	public void write(DataOutput output) throws IOException {
+		output.writeUTF(_name);
+		output.writeInt(_rows);
+		output.writeInt(_cols);
+	}
+
+	public static Matrix read(DataInput input) {
+		try {
+			Matrix matrix = new Matrix();
+			matrix.readFields(input);
+			return matrix;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	public static Matrix addRemote(String resultName, Matrix a, Matrix b,
+			Configuration conf) {
+		int bRows = a.getBlockRows();
+		int bCols = a.getBlockCols();
+		Matrix result = new Matrix(resultName, a.getRows(), a.getCols());
+		for (int bRow = 0; bRow < bRows; bRow++) {
+			for (int bCol = 0; bCol < bCols; bCol++) {
+				Content resultContent = Content.add(result, Content
+						.read(new Block(a, bRow, bCol)), Content
+						.read(new Block(b, bRow, bCol)));
+				resultContent.writeRemote(conf);
+			}
+		}
+
+		return result;
 	}
 
 }

@@ -3,19 +3,30 @@
  */
 package mrcl;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Random;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Writable;
+
 import jcuda.Pointer;
 import jcuda.Sizeof;
 import jcuda.jcublas.JCublas;
 
-public class Content {
+public class Content implements Writable{
 	private ByteBuffer _byteBuffer;
 	private FloatBuffer _floatBuffer;
 	private Block _block;
@@ -23,7 +34,9 @@ public class Content {
 	private Content(Block block) {
 		_block = block;
 		_byteBuffer = ByteBuffer.allocate(Block.BLOCK_SIZE_2 * 4);
+		_byteBuffer.rewind();
 		_floatBuffer = _byteBuffer.asFloatBuffer();
+		_floatBuffer.rewind();
 	}
 
 	public static Content make(Block block) {
@@ -32,7 +45,7 @@ public class Content {
 
 	public static Content read(Block block) {
 		Content content = new Content(block);
-		content.read();
+		content.readLocal();
 		return content;
 	}
 
@@ -45,7 +58,7 @@ public class Content {
 				_floatBuffer.put(fillValue);
 			}
 		}
-		this.write();
+		_floatBuffer.rewind();
 	}
 
 	public void randomize(long seed) {
@@ -59,19 +72,20 @@ public class Content {
 				_floatBuffer.put(r.nextFloat());
 			}
 		}
-		this.write();
+		_floatBuffer.rewind();
 	}
 
-	public void write() {
+	public void writeLocal() {
 		try {
-			File f = new File(_block.blockPath());
+			File f = new File(_block.getBlockPath());
 			File p = f.getParentFile();
 			if (!p.exists())
 				p.mkdirs();
 			if (!f.exists())
 				f.createNewFile();
-			FileOutputStream fos = new FileOutputStream(f, false);
+			FileOutputStream fos = new FileOutputStream(f);
 			FileChannel fc = fos.getChannel();
+			//fc.position(0);
 			fc.write(_byteBuffer);
 			fc.close();
 			fos.close();
@@ -79,26 +93,28 @@ public class Content {
 			throw new RuntimeException(e);
 		}
 	}
-
-	public void read() {
+	
+	public void readLocal() {
 		try {
-			FileInputStream fis = new FileInputStream(_block.blockPath());
+			FileInputStream fis = new FileInputStream(_block.getBlockPath());
 			FileChannel fc = fis.getChannel();
 			_byteBuffer = ByteBuffer.allocate(Block.BLOCK_SIZE_2 * 4);
 			fc.read(_byteBuffer);
 			_byteBuffer.rewind();
 			_floatBuffer = _byteBuffer.asFloatBuffer();
+			_floatBuffer.rewind();
 			fc.close();
 			fis.close();
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}
-
+	
 	public float[] getRow(int row) {
 		float[] ret = new float[_block.getInnerCols()];
-		_floatBuffer.rewind();
+		_floatBuffer.position(Block.BLOCK_SIZE * row);
 		_floatBuffer.get(ret);
+		_floatBuffer.rewind();
 		return ret;
 	}
 
@@ -187,6 +203,27 @@ public class Content {
 				}
 				C.put(j * n + i, alpha * prod + beta * C.get(j * n + i));
 			}
+		}
+	}
+
+	@Override
+	public void readFields(DataInput input) throws IOException {
+		input.readFully(_byteBuffer.array());
+	}
+
+	@Override
+	public void write(DataOutput output) throws IOException {
+		output.write(_byteBuffer.array());
+	}
+
+	public void writeRemote(Configuration conf) {
+		try {
+			FileSystem fs = FileSystem.get(conf);
+			DataOutputStream dos = fs.create(new Path(_block.getBlockPath()));
+			write(dos);
+			dos.close();
+		} catch (Exception e) {
+			throw new RuntimeException(e);
 		}
 	}
 }

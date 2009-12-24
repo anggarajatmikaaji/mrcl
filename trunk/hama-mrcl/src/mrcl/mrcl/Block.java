@@ -1,5 +1,11 @@
 package mrcl;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
+
+import org.apache.hadoop.io.Writable;
+
 public class Block {
 	private Matrix _matrix;
 	public static final int BLOCK_SIZE = 10;
@@ -42,7 +48,8 @@ public class Block {
 		return _innerCols;
 	}
 
-	public String blockPath() {
+	public String getBlockPath() {
 		return _matrix.matrixPath() + "/blocks/" + _blockRow + "/" + _blockCol;
 	}
+
 }
