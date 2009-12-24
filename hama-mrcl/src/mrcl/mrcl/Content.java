@@ -115,9 +115,7 @@ public class Content implements Writable {
 		return content;
 	}
 
-	public static Content add(Matrix matrix, Content a, Content b) {
-		Block block = new Block(matrix, a._block.getBlockRow(), a._block
-				.getBlockCol());
+	public static Content add(Block block, Content a, Content b) {
 		Content content = new Content(block);
 		for (int i = 0; i < Block.BLOCK_SIZE_2; i++) {
 			content._floatBuffer.put(i, a._floatBuffer.get(i)
