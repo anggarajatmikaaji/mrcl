@@ -16,6 +16,7 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.mapred.FileInputFormat;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.MapReduceBase;
@@ -23,6 +24,9 @@ import org.apache.hadoop.mapred.Mapper;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reducer;
 import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.mapred.SequenceFileAsBinaryOutputFormat;
+import org.apache.hadoop.mapred.TextInputFormat;
+import org.apache.hadoop.mapred.FileOutputFormat;
 
 public class DistMult {
 	public static void main(String[] args) {
@@ -31,16 +35,20 @@ public class DistMult {
 	
 	public void run(){
 		try {
-			Configuration conf = new Configuration();
+			Configuration conf = new Configuration(true);
 			int n = 100;
 			Matrix a = Matrix.createRandomRemote("a", n, n, 1, conf);
 			Matrix b = Matrix.createRandomRemote("b", n, n, 2, conf);
-			makeJob(a, b);
+			String jobName = makeJob(a, b, conf);
 			
 			JobConf job = new JobConf();
 			job.setMapperClass(MultMap.class);
 			job.setReducerClass(MultReduce.class);
 			job.setCombinerClass(MultReduce.class);
+			job.setInputFormat(TextInputFormat.class);
+			FileInputFormat.setInputPaths(job, new Path(jobName));
+			FileOutputFormat.setOutputPath(job, new Path("some"));
+			
 			JobClient.runJob(job);
 			
 		} catch (Exception e) {
@@ -48,18 +56,19 @@ public class DistMult {
 		}
 	}
 	
-	public void makeJob(Matrix a, Matrix b) {
+	public String makeJob(Matrix a, Matrix b, Configuration conf) {
 		try {
-			Configuration conf = new Configuration();
 			FileSystem fs = FileSystem.get(conf);
-			DataOutputStream dos = fs.create(new Path(String.format(
-					"mrcl/jobs/%s__%s", a.getName(), b.getName())));
+			String jobName = String.format(
+					"mrcl/jobs/%s__mult__%s", a.getName(), b.getName());
+			DataOutputStream dos = fs.create(new Path(jobName));
 
 			int rounds = a.getBlockCols();
 			for (int round = 0; round < rounds; round++)
 				dos.writeUTF(new MultArgs(a.getName(), b.getName(), round)
 						+ "\n");
-
+			
+			return jobName;
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
