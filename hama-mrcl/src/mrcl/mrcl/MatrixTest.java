@@ -15,7 +15,7 @@ public class MatrixTest {
 		Matrix b = Matrix.createRandom("b", n, n, 2);
 		
 		FloatBuffer result = FloatBuffer.allocate(a.getRows() * b.getCols());
-		Block.sgemmJava(n, 1, a.getFloatBuffer(), b.getFloatBuffer(), 0, result);
+		Content.sgemmJava(n, 1, a.getFloatBuffer(), b.getFloatBuffer(), 0, result);
 		
 		Matrix c = Matrix.multiply("c", a, b);
 		FloatBuffer cData = c.getFloatBuffer();
