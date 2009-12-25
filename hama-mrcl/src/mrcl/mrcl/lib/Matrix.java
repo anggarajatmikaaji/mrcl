@@ -102,12 +102,19 @@ public class Matrix implements Writable {
 
 	public static Matrix multiplyLocal(String resultName, Matrix a, Matrix b,
 			int fromRound, int toRound) {
+		// TODO: make matrixMultiplier as option.
+		return multiplyLocal(resultName, a, b, fromRound, toRound, MatrixMultiplier.DEFAULT_MULTIPLIER);
+	}
+	
+	public static Matrix multiplyLocal(String resultName, Matrix a, Matrix b,
+			int fromRound, int toRound, String matrixMultiplier) {
 		int rows = a.getRows();
 		int cols = b.getCols();
 		int bRows = a.getBlockRows();
 		int bCols = b.getBlockCols();
 
 		Matrix result = Matrix.createFillLocal(resultName, rows, cols, 0);
+		MatrixMultiplier mm = getMatrixMultiplier(matrixMultiplier);
 
 		for (int round = fromRound; round < toRound; round++) {
 			// make intermediate results
@@ -117,7 +124,7 @@ public class Matrix implements Writable {
 			for (int bRow = 0; bRow < bRows; bRow++) {
 				for (int bCol = 0; bCol < bCols; bCol++) {
 					Block interBlock = new Block(inter, bRow, bCol);
-					Content interContent = Content.multiplyJava(interBlock,
+					Content interContent = mm.doMultiplication(interBlock,
 							Content.readLocal(new Block(a, round, bCol)),
 							Content.readLocal(new Block(b, bRow, round)));
 
@@ -145,13 +152,14 @@ public class Matrix implements Writable {
 		// make intermediate results
 		Matrix inter = Matrix.createFillRemote(String.format("__tmp/%s_%d",
 				resultName, round), rows, cols, 0, conf);
+		MatrixMultiplier mm = getMatrixMultiplier(conf.get("matrix.multiplier", MatrixMultiplier.DEFAULT_MULTIPLIER));
 		
 		for (int bRow = 0; bRow < bRows; bRow++) {
 			Content bContent = Content.readRemote(new Block(b, bRow, round),
 					conf);
 			for (int bCol = 0; bCol < bCols; bCol++) {
 				Block interBlock = new Block(inter, bRow, bCol);
-				Content interContent = Content.multiplyCublas(interBlock,
+				Content interContent = mm.doMultiplication(interBlock,
 						Content.readRemote(new Block(a, round, bCol), conf),
 						bContent);
 				interContent.writeRemote(conf);
@@ -179,6 +187,71 @@ public class Matrix implements Writable {
 		}
 
 		return result;
+	}
+	
+	public static Matrix read(DataInput input) {
+		try {
+			Matrix matrix = new Matrix();
+			matrix.readFields(input);
+			return matrix;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	public static Matrix addRemote(String resultName, Matrix a, Matrix b,
+			Configuration conf) {
+		int bRows = a.getBlockRows();
+		int bCols = a.getBlockCols();
+		Matrix result = new Matrix(resultName, a.getRows(), a.getCols());
+		for (int bRow = 0; bRow < bRows; bRow++) {
+			for (int bCol = 0; bCol < bCols; bCol++) {
+				Block resultBlock = new Block(result, bRow, bCol);
+				Content resultContent = Content.add(resultBlock, Content
+						.readRemote(new Block(a, bRow, bCol), conf), Content
+						.readRemote(new Block(b, bRow, bCol), conf));
+				resultContent.writeRemote(conf);
+			}
+		}
+
+		return result;
+	}
+
+	public static Matrix readRemote(String name, Configuration conf) {
+		try {
+			FileSystem fs = FileSystem.get(conf);
+			DataInputStream dis = fs.open(new Path(Matrix.getDescPath(name)));
+			Matrix matrix = Matrix.read(dis);
+			dis.close();
+			fs.close();
+			return matrix;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	public static String getPath(String name) {
+		return "mrcl/matrix/" + name;
+	}
+
+	public static String getDescPath(String name) {
+		return getPath(name) + "/desc";
+	}
+	
+	public static MatrixMultiplier getMatrixMultiplier(String name) {
+		MatrixMultiplier mm;
+        try {
+	        mm = (MatrixMultiplier) Class.forName("mrcl.lib." + name + "MatrixMultiplier").newInstance();
+        } catch (InstantiationException e) {
+	        e.printStackTrace();
+	        return null;
+        } catch (IllegalAccessException e) {
+        	e.printStackTrace();
+	        return null;
+        } catch (ClassNotFoundException e) {
+        	throw new IllegalArgumentException(e);
+        }
+		return mm;
 	}
 
 	public int getBlockCols() {
@@ -317,54 +390,4 @@ public class Matrix implements Writable {
 			throw new RuntimeException(e);
 		}
 	}
-
-	public static Matrix read(DataInput input) {
-		try {
-			Matrix matrix = new Matrix();
-			matrix.readFields(input);
-			return matrix;
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	public static Matrix addRemote(String resultName, Matrix a, Matrix b,
-			Configuration conf) {
-		int bRows = a.getBlockRows();
-		int bCols = a.getBlockCols();
-		Matrix result = new Matrix(resultName, a.getRows(), a.getCols());
-		for (int bRow = 0; bRow < bRows; bRow++) {
-			for (int bCol = 0; bCol < bCols; bCol++) {
-				Block resultBlock = new Block(result, bRow, bCol);
-				Content resultContent = Content.add(resultBlock, Content
-						.readRemote(new Block(a, bRow, bCol), conf), Content
-						.readRemote(new Block(b, bRow, bCol), conf));
-				resultContent.writeRemote(conf);
-			}
-		}
-
-		return result;
-	}
-
-	public static Matrix readRemote(String name, Configuration conf) {
-		try {
-			FileSystem fs = FileSystem.get(conf);
-			DataInputStream dis = fs.open(new Path(Matrix.getDescPath(name)));
-			Matrix matrix = Matrix.read(dis);
-			dis.close();
-			fs.close();
-			return matrix;
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	public static String getPath(String name) {
-		return "mrcl/matrix/" + name;
-	}
-
-	public static String getDescPath(String name) {
-		return getPath(name) + "/desc";
-	}
-
 }

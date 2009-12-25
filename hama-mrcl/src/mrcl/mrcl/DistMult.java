@@ -8,6 +8,7 @@ import java.util.Iterator;
 
 import mrcl.lib.Block;
 import mrcl.lib.Matrix;
+import mrcl.lib.MatrixMultiplier;
 import mrcl.lib.MultArgs;
 
 import org.apache.hadoop.conf.Configuration;
@@ -30,28 +31,31 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
 @SuppressWarnings("deprecation")
-public class DistMult extends Configured implements Tool {
-	public static void main(String[] args) throws Exception {
+public class DistMult extends Configured implements Tool
+{
+	public static void main(String[] args) throws Exception
+	{
 		ToolRunner.run(new DistMult(), args);
 	}
 
 	@Override
-	public int run(String[] args) throws Exception {
+	public int run(String[] args) throws Exception
+	{
 		try {
-		    Configuration conf = getConf();
+			Configuration conf = getConf();
 			JobConf job = new JobConf(conf, DistMult.class);
-			
-			boolean useJCublas = job.getBoolean("useJCublas", false); // Example: -DuseJCublas=true
+
 			int n = job.getInt("matrix.size", 1000); // Example: -Dmatrix.size=100000
 			Block.BLOCK_SIZE = job.getInt("block.size", 1024); // Example: -Dblock.size=2048
-			
+
 			Matrix a = Matrix.createRandomRemote("bb", n, n, 1, conf);
 			a.writeRemote(conf);
 			Matrix b = Matrix.createRandomRemote("cc", n, n, 2, conf);
 			b.writeRemote(conf);
 			String jobName = makeJob(a, b, conf);
 
-			job.setJobName("MM-" + (useJCublas ? "JCublas" : "Java"));
+			// Example: -Dmatrix.multiplier=JCublas
+			job.setJobName("MM-" + job.get("matrix.multiplier", MatrixMultiplier.DEFAULT_MULTIPLIER)); 
 			job.setMapperClass(MultMap.class);
 			job.setReducerClass(MultReduce.class);
 			job.setCombinerClass(MultCombine.class);
@@ -71,17 +75,15 @@ public class DistMult extends Configured implements Tool {
 			JobClient.runJob(job).waitForCompletion();
 
 			if (job.getBoolean("validate", false)) { // Example: -Dvalidate=true
-				FloatBuffer distResult = Matrix.readRemote("result", conf)
-						.getFloatBufferRemote(conf);
-	
+				FloatBuffer distResult = Matrix.readRemote("result", conf).getFloatBufferRemote(conf);
+
 				Matrix c = Matrix.createRandomLocal("c", n, n, 1);
 				Matrix d = Matrix.createRandomLocal("d", n, n, 2);
 				Matrix e = Matrix.multiplyLocal("e", c, d);
 				FloatBuffer localResult = e.getFloatBufferLocal();
-	
+
 				for (int i = 0; i < 100; i++) {
-					System.out.printf("%f, %f\n", distResult.get(i), localResult
-							.get(i));
+					System.out.printf("%f, %f\n", distResult.get(i), localResult.get(i));
 				}
 			}
 
@@ -91,20 +93,17 @@ public class DistMult extends Configured implements Tool {
 		return 0;
 	}
 
-	public String makeJob(Matrix a, Matrix b, Configuration conf) {
+	public String makeJob(Matrix a, Matrix b, Configuration conf)
+	{
 		try {
 			FileSystem fs = FileSystem.get(conf);
-			String jobName = String.format("/mrcl/jobs/mult/%s/%s",
-					a.getName(), b.getName());
+			String jobName = String.format("/mrcl/jobs/mult/%s/%s", a.getName(), b.getName());
 			FSDataOutputStream dos = fs.create(new Path(jobName));
 			int rounds = a.getBlockCols();
 			StringBuilder builder = new StringBuilder();
 			for (int round = 0; round < rounds; round++)
-				builder.append(
-						new MultArgs(a.getName(), b.getName(), round)
-								.toString()).append('\n');
-			BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(dos
-					.getWrappedStream()));
+				builder.append(new MultArgs(a.getName(), b.getName(), round).toString()).append('\n');
+			BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(dos.getWrappedStream()));
 			bw.write(builder.toString());
 			bw.close();
 			dos.close();
@@ -115,24 +114,23 @@ public class DistMult extends Configured implements Tool {
 		}
 	}
 
-	public static class MultMap implements
-			Mapper<LongWritable, Text, MultArgs, Matrix> {
+	public static class MultMap implements Mapper<LongWritable, Text, MultArgs, Matrix>
+	{
 
 		private Configuration conf;
 
 		@Override
-		public void map(LongWritable lineNo, Text line,
-				OutputCollector<MultArgs, Matrix> output, Reporter reporter)
-				throws IOException {
+		public void map(LongWritable lineNo, Text line, OutputCollector<MultArgs, Matrix> output, Reporter reporter)
+		        throws IOException
+		{
 
 			MultArgs args = new MultArgs(line.toString());
 			reporter.setStatus("read matrices");
 			Matrix a = Matrix.readRemote(args.getA(), conf);
 			Matrix b = Matrix.readRemote(args.getB(), conf);
-			
+
 			reporter.setStatus("multiply");
-			Matrix inter = Matrix.multiplyRemote(a.getName() + "_"
-					+ b.getName(), a, b, args.getRound(), conf);
+			Matrix inter = Matrix.multiplyRemote(a.getName() + "_" + b.getName(), a, b, args.getRound(), conf);
 			reporter.setStatus("write");
 			inter.writeRemote(conf);
 
@@ -141,40 +139,39 @@ public class DistMult extends Configured implements Tool {
 		}
 
 		@Override
-		public void configure(JobConf conf) {
+		public void configure(JobConf conf)
+		{
 			this.conf = conf;
 		}
 
 		@Override
-		public void close() throws IOException {
+		public void close() throws IOException
+		{
 		}
 
 	}
 
-	public static class MultCombine implements
-			Reducer<MultArgs, Matrix, MultArgs, Matrix> {
+	public static class MultCombine implements Reducer<MultArgs, Matrix, MultArgs, Matrix>
+	{
 		private Configuration conf;
 
 		@Override
-		public void reduce(MultArgs key, Iterator<Matrix> values,
-				OutputCollector<MultArgs, Matrix> output, Reporter reporter)
-				throws IOException {
+		public void reduce(MultArgs key, Iterator<Matrix> values, OutputCollector<MultArgs, Matrix> output,
+		        Reporter reporter) throws IOException
+		{
 			Matrix value = values.next();
-			Matrix sum = Matrix.createFillRemote("/__tmp/sum/"
-					+ value.getName(), value.getRows(), value.getCols(), 0,
-					conf);
+			Matrix sum = Matrix.createFillRemote("/__tmp/sum/" + value.getName(), value.getRows(), value.getCols(), 0,
+			        conf);
 
 			sum.writeRemote(conf);
-			sum = Matrix.addRemote("/__tmp/sum/" + value.getName(), sum, value,
-					conf);
+			sum = Matrix.addRemote("/__tmp/sum/" + value.getName(), sum, value, conf);
 			sum.writeRemote(conf);
 			reporter.progress();
 
 			while (values.hasNext()) {
 				reporter.progress();
 				value = values.next();
-				sum = Matrix.addRemote("/__tmp/sum/" + value.getName(), sum,
-						value, conf);
+				sum = Matrix.addRemote("/__tmp/sum/" + value.getName(), sum, value, conf);
 				sum.writeRemote(conf);
 			}
 
@@ -182,33 +179,33 @@ public class DistMult extends Configured implements Tool {
 		}
 
 		@Override
-		public void configure(JobConf conf) {
+		public void configure(JobConf conf)
+		{
 			this.conf = conf;
 		}
 
 		@Override
-		public void close() throws IOException {
+		public void close() throws IOException
+		{
 		}
 	}
 
-	public static class MultReduce implements
-			Reducer<MultArgs, Matrix, MultArgs, Matrix> {
+	public static class MultReduce implements Reducer<MultArgs, Matrix, MultArgs, Matrix>
+	{
 		private Configuration conf;
 
 		@Override
-		public void reduce(MultArgs key, Iterator<Matrix> values,
-				OutputCollector<MultArgs, Matrix> output, Reporter reporter)
-				throws IOException {
+		public void reduce(MultArgs key, Iterator<Matrix> values, OutputCollector<MultArgs, Matrix> output,
+		        Reporter reporter) throws IOException
+		{
 			Matrix a = Matrix.readRemote(key.getA(), conf);
-			Matrix sum = Matrix.createFillRemote("/__tmp/base", a.getRows(), a
-					.getCols(), 0, conf);
+			Matrix sum = Matrix.createFillRemote("/__tmp/base", a.getRows(), a.getCols(), 0, conf);
 			while (values.hasNext()) {
 				Matrix value = values.next();
 				if (!values.hasNext())
 					sum = Matrix.addRemote("result", sum, value, conf);
 				else
-					sum = Matrix.addRemote("/__tmp/sum/" + value.getName(),
-							sum, value, conf);
+					sum = Matrix.addRemote("/__tmp/sum/" + value.getName(), sum, value, conf);
 				sum.writeRemote(conf);
 			}
 
@@ -216,12 +213,14 @@ public class DistMult extends Configured implements Tool {
 		}
 
 		@Override
-		public void configure(JobConf conf) {
+		public void configure(JobConf conf)
+		{
 			this.conf = conf;
 		}
 
 		@Override
-		public void close() throws IOException {
+		public void close() throws IOException
+		{
 		}
 	}
 }
