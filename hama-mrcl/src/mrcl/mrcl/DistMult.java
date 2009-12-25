@@ -1,35 +1,27 @@
 package mrcl;
 
 import java.io.BufferedWriter;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.nio.FloatBuffer;
 import java.util.Iterator;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapred.FileInputFormat;
+import org.apache.hadoop.mapred.FileOutputFormat;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.MapReduceBase;
 import org.apache.hadoop.mapred.Mapper;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reducer;
 import org.apache.hadoop.mapred.Reporter;
-import org.apache.hadoop.mapred.SequenceFileAsBinaryOutputFormat;
 import org.apache.hadoop.mapred.TextInputFormat;
-import org.apache.hadoop.mapred.FileOutputFormat;
 
+@SuppressWarnings("deprecation")
 public class DistMult {
 	public static void main(String[] args) {
 		new DistMult().run();
@@ -151,7 +143,6 @@ public class DistMult {
 				OutputCollector<MultArgs, Matrix> output, Reporter reporter)
 				throws IOException {
 			Matrix value = values.next();
-			int c = 0;
 			Matrix sum = Matrix.createFillRemote("/__tmp/sum/"
 					+ value.getName(), value.getRows(), value.getCols(), 0,
 					conf);

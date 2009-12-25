@@ -1,11 +1,5 @@
 package mrcl;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
-
-import org.apache.hadoop.io.Writable;
-
 public class Block {
 	private Matrix _matrix;
 	public static final int BLOCK_SIZE = 1024;
