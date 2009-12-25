@@ -1,0 +1,23 @@
+<project name="mrcl" default="jar">
+	<property name="output.name" value="mrcl" />
+	<property name="src.dir" value="src/mrcl" />
+	<property name="build.dir" value="build/mrcl" />
+
+	<!-- TODO: move mrcl directory out of mrcl subdirectory of the workspace root. -->
+	<fileset id="lib.jars" dir="${basedir}" includes="lib/*.jar" />
+	<path id="classpath">
+		<fileset refid="lib.jars" />
+		<pathelement location="${build.dir}" />
+	</path>
+
+	<target name="jar" depends="compile">
+		<jar jarfile="${basedir}/${output.name}.jar" basedir="${build.dir}" />
+	</target>
+
+	<target name="compile">
+		<mkdir dir="${build.dir}" />
+		<javac srcdir="${src.dir}" includes="**/*.java" destdir="${build.dir}" deprecation="off">
+			<classpath refid="classpath" />
+		</javac>
+	</target>
+</project>
