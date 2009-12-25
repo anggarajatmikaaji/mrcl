@@ -98,9 +98,7 @@ public class Content implements Writable {
 		return ret;
 	}
 
-	public static Content multiplyCublas(Matrix matrix, Content a, Content b) {
-		Block block = new Block(matrix, a._block.getBlockRow(), b._block
-				.getBlockCol());
+	public static Content multiplyCublas(Block block, Content a, Content b) {
 		Content content = new Content(block);
 		sgemmJCublas(Block.BLOCK_SIZE, 1, a._byteBuffer.array(), b._byteBuffer
 				.array(), 0, content._byteBuffer.array());
