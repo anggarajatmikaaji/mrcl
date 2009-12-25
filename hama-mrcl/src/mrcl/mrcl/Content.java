@@ -76,6 +76,7 @@ public class Content implements Writable {
 			File p = f.getParentFile();
 			if (!p.exists())
 				p.mkdirs();
+			System.out.println(f.getAbsolutePath());
 			if (!f.exists())
 				f.createNewFile();
 			FileOutputStream fos = new FileOutputStream(f);
