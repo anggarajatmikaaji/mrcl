@@ -31,11 +31,7 @@ public class Matrix implements Writable {
 		_blockCols = cols / Block.BLOCK_SIZE;
 	}
 
-	public static Matrix create(String matrixName, int rows, int cols) {
-		return createFill(matrixName, rows, cols, 0);
-	}
-
-	public static Matrix createFill(String matrixName, int rows, int cols,
+	public static Matrix createFillLocal(String matrixName, int rows, int cols,
 			float fill) {
 		Matrix matrix = new Matrix(matrixName, rows, cols);
 		for (int blockRow = 0; blockRow <= matrix._blockRows; blockRow++) {
@@ -111,11 +107,11 @@ public class Matrix implements Writable {
 		int bRows = a.getBlockRows();
 		int bCols = b.getBlockCols();
 
-		Matrix result = Matrix.createFill(resultName, rows, cols, 0);
+		Matrix result = Matrix.createFillLocal(resultName, rows, cols, 0);
 
 		for (int round = fromRound; round < toRound; round++) {
 			// make intermediate results
-			Matrix inter = Matrix.createFill("__inter__" + resultName, rows,
+			Matrix inter = Matrix.createFillLocal("__inter__" + resultName, rows,
 					cols, 0);
 
 			for (int bRow = 0; bRow < bRows; bRow++) {
