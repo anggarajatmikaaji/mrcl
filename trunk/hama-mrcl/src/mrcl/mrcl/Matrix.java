@@ -196,12 +196,12 @@ public class Matrix implements Writable {
 		return _rows / Block.BLOCK_SIZE;
 	}
 
-	public String matrixPath() {
+	public String getMatrixPath() {
 		return getPath(_name);
 	}
 
-	public String matrixDescPath() {
-		return matrixPath() + "/description";
+	public String getMatrixDescPath() {
+		return getMatrixPath() + "/description";
 	}
 
 	public int getRows() {
@@ -363,7 +363,7 @@ public class Matrix implements Writable {
 	}
 
 	public static String getPath(String name) {
-		return "/mrcl/matrix/" + name;
+		return "mrcl/matrix/" + name;
 	}
 
 	public static String getDescPath(String name) {
