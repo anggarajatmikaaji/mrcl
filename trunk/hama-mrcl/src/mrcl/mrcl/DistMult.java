@@ -39,9 +39,9 @@ public class DistMult {
 		try {
 			Configuration conf = new Configuration(true);
 			int n = 10000;
-			Matrix a = Matrix.createRandomRemote("aa", n, n, 1, conf);
+			Matrix a = Matrix.createRandomRemote("bb", n, n, 1, conf);
 			a.writeRemote(conf);
-			Matrix b = Matrix.createRandomRemote("vv", n, n, 2, conf);
+			Matrix b = Matrix.createRandomRemote("cc", n, n, 2, conf);
 			b.writeRemote(conf);
 			String jobName = makeJob(a, b, conf);
 
