@@ -4,6 +4,7 @@
 package mrcl;
 
 import java.io.DataInput;
+
 import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
@@ -21,7 +22,6 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.Writable;
 
 import jcuda.Pointer;
@@ -201,7 +201,7 @@ public class Content implements Writable {
 
 	@Override
 	public void readFields(DataInput input) throws IOException {
-		byte[] bytes = new byte[Block.BLOCK_SIZE_2 * Bytes.SIZEOF_FLOAT];
+		byte[] bytes = new byte[Block.BLOCK_SIZE_2 * 4];
 		input.readFully(bytes);
 		_floatBuffer = byteBufferToFloatBuffer(ByteBuffer.wrap(bytes));
 	}
@@ -249,11 +249,9 @@ public class Content implements Writable {
 	private static FloatBuffer byteBufferToFloatBuffer(ByteBuffer byteBuffer) {
 		FloatBuffer floatBuffer = FloatBuffer.allocate(byteBuffer.limit() / 4);
 		int size = floatBuffer.limit();
-		byte [] bytes = new byte[4];
-		for (int i = 0; i < size; i ++){
-			byteBuffer.position(i * 4);
-			byteBuffer.get(bytes);
-			floatBuffer.put(Bytes.toFloat(bytes));
+		for (int j = 0; j < size; j++){
+			byteBuffer.position(j * 4);
+			floatBuffer.put(byteBuffer.getFloat());
 		}
 		return floatBuffer;
 	}
