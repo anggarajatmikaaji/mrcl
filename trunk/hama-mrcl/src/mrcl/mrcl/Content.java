@@ -26,6 +26,7 @@ import org.apache.hadoop.io.Writable;
 import jcuda.Pointer;
 import jcuda.Sizeof;
 import jcuda.jcublas.JCublas;
+import jcuda.runtime.JCuda;
 
 public class Content implements Writable {
 	private ByteBuffer _byteBuffer;
@@ -100,8 +101,13 @@ public class Content implements Writable {
 
 	public static Content multiplyCublas(Block block, Content a, Content b) {
 		Content content = new Content(block);
-		sgemmJCublas(Block.BLOCK_SIZE, 1, a._byteBuffer.array(), b._byteBuffer
-				.array(), 0, content._byteBuffer.array());
+		float [] aData = new float[Block.BLOCK_SIZE_2];
+		float [] bData = new float[Block.BLOCK_SIZE_2];
+		float [] cData = new float[Block.BLOCK_SIZE_2];
+		a._floatBuffer.get(aData);
+		b._floatBuffer.get(bData);
+		sgemmJCublas(Block.BLOCK_SIZE, 1, aData, bData, 0, cData);
+		content._floatBuffer.put(cData);
 		return content;
 	}
 
@@ -134,8 +140,8 @@ public class Content implements Writable {
 		return content;
 	}
 
-	private static void sgemmJCublas(int n, float alpha, byte A[], byte B[],
-			float beta, byte C[]) {
+	private static void sgemmJCublas(int n, float alpha, float A[], float B[],
+			float beta, float C[]) {
 		int nn = n * n;
 
 		// Initialize JCublas
