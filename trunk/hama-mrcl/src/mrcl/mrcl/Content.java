@@ -21,6 +21,7 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.Writable;
 
 import jcuda.Pointer;
@@ -29,15 +30,16 @@ import jcuda.jcublas.JCublas;
 import jcuda.runtime.JCuda;
 
 public class Content implements Writable {
-	private ByteBuffer _byteBuffer;
+//	private ByteBuffer _byteBuffer;
 	private FloatBuffer _floatBuffer;
 	private Block _block;
 
 	private Content(Block block) {
 		_block = block;
-		_byteBuffer = ByteBuffer.allocate(Block.BLOCK_SIZE_2 * 4);
-		_byteBuffer.rewind();
-		_floatBuffer = _byteBuffer.asFloatBuffer();
+//		_byteBuffer = ByteBuffer.allocate(Block.BLOCK_SIZE_2 * 4);
+//		_byteBuffer.rewind();
+//		_floatBuffer = _byteBuffer.asFloatBuffer();
+		_floatBuffer = FloatBuffer.allocate(Block.BLOCK_SIZE_2);
 		_floatBuffer.rewind();
 	}
 
@@ -83,12 +85,21 @@ public class Content implements Writable {
 			FileOutputStream fos = new FileOutputStream(f);
 			FileChannel fc = fos.getChannel();
 			// fc.position(0);
-			fc.write(_byteBuffer);
+			fc.write(floatBufferToByteBuffer(_floatBuffer));
 			fc.close();
 			fos.close();
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	private static ByteBuffer floatBufferToByteBuffer(FloatBuffer floatBuffer) {
+		ByteBuffer byteBuffer = ByteBuffer.allocate(floatBuffer.limit() * 4);
+		int size = floatBuffer.limit();
+		for (int i = 0; i < size; i++){
+			byteBuffer.putFloat(floatBuffer.get(i));
+		}
+		return byteBuffer;
 	}
 
 	public float[] getRow(int row) {
@@ -190,12 +201,14 @@ public class Content implements Writable {
 
 	@Override
 	public void readFields(DataInput input) throws IOException {
-		input.readFully(_byteBuffer.array());
+		byte[] bytes = new byte[Block.BLOCK_SIZE_2 * Bytes.SIZEOF_FLOAT];
+		input.readFully(bytes);
+		_floatBuffer = byteBufferToFloatBuffer(ByteBuffer.wrap(bytes));
 	}
 
 	@Override
 	public void write(DataOutput output) throws IOException {
-		output.write(_byteBuffer.array());
+		output.write(floatBufferToByteBuffer(_floatBuffer).array());
 	}
 
 	public void writeRemote(Configuration conf) {
@@ -220,10 +233,10 @@ public class Content implements Writable {
 			FileInputStream fis = new FileInputStream(content._block
 					.getBlockPath());
 			FileChannel fc = fis.getChannel();
-			content._byteBuffer = ByteBuffer.allocate(Block.BLOCK_SIZE_2 * 4);
-			fc.read(content._byteBuffer);
-			content._byteBuffer.rewind();
-			content._floatBuffer = content._byteBuffer.asFloatBuffer();
+			ByteBuffer byteBuffer = ByteBuffer.allocate(Block.BLOCK_SIZE_2 * 4);
+			fc.read(byteBuffer);
+			byteBuffer.rewind();
+			content._floatBuffer = byteBufferToFloatBuffer(byteBuffer);
 			content._floatBuffer.rewind();
 			fc.close();
 			fis.close();
@@ -233,6 +246,18 @@ public class Content implements Writable {
 		}
 	}
 
+	private static FloatBuffer byteBufferToFloatBuffer(ByteBuffer byteBuffer) {
+		FloatBuffer floatBuffer = FloatBuffer.allocate(byteBuffer.limit() / 4);
+		int size = floatBuffer.limit();
+		byte [] bytes = new byte[4];
+		for (int i = 0; i < size; i ++){
+			byteBuffer.position(i * 4);
+			byteBuffer.get(bytes);
+			floatBuffer.put(Bytes.toFloat(bytes));
+		}
+		return floatBuffer;
+	}
+	
 	public static Content readRemote(Block block, Configuration conf) {
 		try {
 			Content content = new Content(block);
