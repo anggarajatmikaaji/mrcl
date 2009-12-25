@@ -147,7 +147,6 @@ public class DistMult {
 				OutputCollector<MultArgs, Matrix> output, Reporter reporter)
 				throws IOException {
 			Matrix value = values.next();
-			// Matrix.createRandomRemote("d", 1, 1, 1, conf);
 			int c = 0;
 			Matrix sum = Matrix.createFillRemote("/__tmp/sum/"
 					+ value.getName(), value.getRows(), value.getCols(), 0,
@@ -188,31 +187,18 @@ public class DistMult {
 		public void reduce(MultArgs key, Iterator<Matrix> values,
 				OutputCollector<MultArgs, Matrix> output, Reporter reporter)
 				throws IOException {
-			Matrix value = values.next();
-			// Matrix.createRandomRemote("d", 1, 1, 1, conf);
-			int c = 0;
-			Matrix sum = Matrix.createFillRemote("/__tmp/sum/"
-					+ value.getName(), value.getRows(), value.getCols(), 0,
-					conf);
-
-			sum.writeRemote(conf);
-			sum = Matrix.addRemote("/__tmp/sum/" + value.getName(), sum, value,
-					conf);
-			sum.writeRemote(conf);
-			reporter.progress();
-
+			Matrix a = Matrix.readRemote(key.getA(), conf);
+			Matrix sum = Matrix.createFillRemote("/__tmp/base", a.getRows(), a
+					.getCols(), 0, conf);
 			while (values.hasNext()) {
-				reporter.progress();
-				value = values.next();
-				sum = Matrix.addRemote("/__tmp/sum/" + value.getName(), sum,
-						value, conf);
+				Matrix value = values.next();
+				if (!values.hasNext())
+					sum = Matrix.addRemote("result", sum, value, conf);
+				else
+					sum = Matrix.addRemote("/__tmp/sum/" + value.getName(),
+							sum, value, conf);
 				sum.writeRemote(conf);
 			}
-			FileSystem fs = FileSystem.get(conf);
-			Path resultPath = new Path("/mrcl/matrix/result");
-			if (fs.exists(resultPath))
-				fs.delete(resultPath, true);
-			fs.rename(new Path(Matrix.getPath(sum.getName())), resultPath);
 
 			output.collect(key, sum);
 		}
