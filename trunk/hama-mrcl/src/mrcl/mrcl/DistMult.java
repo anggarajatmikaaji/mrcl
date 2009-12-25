@@ -117,13 +117,17 @@ public class DistMult {
 				throws IOException {
 
 			MultArgs args = new MultArgs(line.toString());
+			reporter.setStatus("read matrices");
 			Matrix a = Matrix.readRemote(args.getA(), conf);
 			Matrix b = Matrix.readRemote(args.getB(), conf);
-
+			
+			reporter.setStatus("multiply");
 			Matrix inter = Matrix.multiplyRemote(a.getName() + "_"
 					+ b.getName(), a, b, args.getRound(), conf);
+			reporter.setStatus("write");
 			inter.writeRemote(conf);
 
+			reporter.setStatus("collect");
 			output.collect(new MultArgs(a.getName(), b.getName(), 0), inter);
 		}
 

@@ -150,7 +150,7 @@ public class Matrix implements Writable {
 		// make intermediate results
 		Matrix inter = Matrix.createFillRemote(String.format("__tmp/%s_%d",
 				resultName, round), rows, cols, 0, conf);
-
+		
 		for (int bRow = 0; bRow < bRows; bRow++) {
 			Content bContent = Content.readRemote(new Block(b, bRow, round),
 					conf);
