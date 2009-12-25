@@ -4,6 +4,9 @@ package mrcl;
 import java.nio.FloatBuffer;
 import java.util.Arrays;
 
+import mrcl.lib.Content;
+import mrcl.lib.Matrix;
+
 public class MatrixTest {
 	public void testSome() {
 		int n = 100;

@@ -1,7 +1,7 @@
 /**
  * 
  */
-package mrcl;
+package mrcl.lib;
 
 import java.io.DataInput;
 import java.io.DataInputStream;
@@ -32,7 +32,7 @@ public class Content implements Writable {
 
 	private Content(Block block) {
 		_block = block;
-		_byteBuffer = ByteBuffer.allocate(Block.BLOCK_SIZE_2 * 4);
+		_byteBuffer = ByteBuffer.allocate(Block.BLOCK_SIZE * Block.BLOCK_SIZE * 4);
 		_byteBuffer.rewind();
 		_floatBuffer = _byteBuffer.asFloatBuffer();
 		_floatBuffer.rewind();
@@ -98,9 +98,9 @@ public class Content implements Writable {
 
 	public static Content multiplyCublas(Block block, Content a, Content b) {
 		Content content = new Content(block);
-		float [] aData = new float[Block.BLOCK_SIZE_2];
-		float [] bData = new float[Block.BLOCK_SIZE_2];
-		float [] cData = new float[Block.BLOCK_SIZE_2];
+		float [] aData = new float[Block.BLOCK_SIZE * Block.BLOCK_SIZE];
+		float [] bData = new float[Block.BLOCK_SIZE * Block.BLOCK_SIZE];
+		float [] cData = new float[Block.BLOCK_SIZE * Block.BLOCK_SIZE];
 		a._floatBuffer.rewind();
 		a._floatBuffer.get(aData);
 		b._floatBuffer.rewind();
@@ -121,7 +121,8 @@ public class Content implements Writable {
 
 	public static Content add(Block block, Content a, Content b) {
 		Content content = new Content(block);
-		for (int i = 0; i < Block.BLOCK_SIZE_2; i++) {
+		int blockSizeSquared = Block.BLOCK_SIZE * Block.BLOCK_SIZE;
+		for (int i = 0; i < blockSizeSquared; i++) {
 			content._floatBuffer.put(i, a._floatBuffer.get(i)
 					+ b._floatBuffer.get(i));
 		}
@@ -132,7 +133,8 @@ public class Content implements Writable {
 		Block block = new Block(matrix, a._block.getBlockRow(), a._block
 				.getBlockCol());
 		Content content = new Content(block);
-		for (int i = 0; i < Block.BLOCK_SIZE_2; i++) {
+		int blockSizeSquared = Block.BLOCK_SIZE * Block.BLOCK_SIZE;
+		for (int i = 0; i < blockSizeSquared; i++) {
 			content._floatBuffer.put(i, a._floatBuffer.get(i)
 					- b._floatBuffer.get(i));
 		}
@@ -219,7 +221,7 @@ public class Content implements Writable {
 			FileInputStream fis = new FileInputStream(content._block
 					.getBlockPath());
 			FileChannel fc = fis.getChannel();
-			content._byteBuffer = ByteBuffer.allocate(Block.BLOCK_SIZE_2 * 4);
+			content._byteBuffer = ByteBuffer.allocate(Block.BLOCK_SIZE * Block.BLOCK_SIZE * 4);
 			fc.read(content._byteBuffer);
 			content._byteBuffer.rewind();
 			content._floatBuffer = content._byteBuffer.asFloatBuffer();
