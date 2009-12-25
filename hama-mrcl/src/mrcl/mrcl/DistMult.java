@@ -64,7 +64,7 @@ public class DistMult {
 
 			JobClient.runJob(job).waitForCompletion();
 
-			FloatBuffer distResult = Matrix.readRemote("wow", conf)
+			FloatBuffer distResult = Matrix.readRemote("result", conf)
 					.getFloatBufferRemote(conf);
 
 			Matrix c = Matrix.createRandomLocal("c", n, n, 1);
