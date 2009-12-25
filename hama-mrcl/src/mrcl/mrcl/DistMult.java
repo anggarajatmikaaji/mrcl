@@ -38,7 +38,7 @@ public class DistMult {
 	public void run() {
 		try {
 			Configuration conf = new Configuration(true);
-			int n = 100;
+			int n = 5000;
 			Matrix a = Matrix.createRandomRemote("aa", n, n, 1, conf);
 			a.writeRemote(conf);
 			Matrix b = Matrix.createRandomRemote("vv", n, n, 2, conf);
@@ -64,18 +64,18 @@ public class DistMult {
 
 			JobClient.runJob(job).waitForCompletion();
 
-			FloatBuffer distResult = Matrix.readRemote("result", conf)
-					.getFloatBufferRemote(conf);
-
-			Matrix c = Matrix.createRandomLocal("c", n, n, 1);
-			Matrix d = Matrix.createRandomLocal("d", n, n, 2);
-			Matrix e = Matrix.multiplyLocal("e", c, d);
-			FloatBuffer localResult = e.getFloatBufferLocal();
-
-			for (int i = 0; i < 100; i++) {
-				System.out.printf("%f, %f\n", distResult.get(i), localResult
-						.get(i));
-			}
+//			FloatBuffer distResult = Matrix.readRemote("result", conf)
+//					.getFloatBufferRemote(conf);
+//
+//			Matrix c = Matrix.createRandomLocal("c", n, n, 1);
+//			Matrix d = Matrix.createRandomLocal("d", n, n, 2);
+//			Matrix e = Matrix.multiplyLocal("e", c, d);
+//			FloatBuffer localResult = e.getFloatBufferLocal();
+//
+//			for (int i = 0; i < 100; i++) {
+//				System.out.printf("%f, %f\n", distResult.get(i), localResult
+//						.get(i));
+//			}
 
 		} catch (Exception e) {
 			throw new RuntimeException(e);
