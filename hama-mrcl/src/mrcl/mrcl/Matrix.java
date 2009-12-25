@@ -152,11 +152,13 @@ public class Matrix implements Writable {
 				resultName, round), rows, cols, 0, conf);
 
 		for (int bRow = 0; bRow < bRows; bRow++) {
+			Content bContent = Content.readRemote(new Block(b, bRow, round),
+					conf);
 			for (int bCol = 0; bCol < bCols; bCol++) {
 				Block interBlock = new Block(inter, bRow, bCol);
-				Content interContent = Content.multiplyCublas(interBlock, Content
-						.readRemote(new Block(a, round, bCol), conf), Content
-						.readRemote(new Block(b, bRow, round), conf));
+				Content interContent = Content.multiplyCublas(interBlock,
+						Content.readRemote(new Block(a, round, bCol), conf),
+						bContent);
 				interContent.writeRemote(conf);
 				//
 				// Content resultContent = Content.add(result, Content
@@ -230,7 +232,7 @@ public class Matrix implements Writable {
 
 		return result;
 	}
-	
+
 	public FloatBuffer getFloatBufferRemote(Configuration conf) {
 		FloatBuffer result = FloatBuffer.allocate(_cols * _rows);
 		for (int row = 0; row < _rows; row++) {
