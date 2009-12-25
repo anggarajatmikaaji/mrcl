@@ -39,9 +39,9 @@ public class DistMult {
 		try {
 			Configuration conf = new Configuration(true);
 			int n = 100;
-			Matrix a = Matrix.createRandomRemote("abc", n, n, 1, conf);
+			Matrix a = Matrix.createRandomRemote("aa", n, n, 1, conf);
 			a.writeRemote(conf);
-			Matrix b = Matrix.createRandomRemote("bcd", n, n, 2, conf);
+			Matrix b = Matrix.createRandomRemote("vv", n, n, 2, conf);
 			b.writeRemote(conf);
 			String jobName = makeJob(a, b, conf);
 
@@ -64,9 +64,8 @@ public class DistMult {
 
 			JobClient.runJob(job).waitForCompletion();
 
-			FloatBuffer distResult = Matrix.readRemote(
-					"result",
-					conf).getFloatBufferRemote(conf);
+			FloatBuffer distResult = Matrix.readRemote("result", conf)
+					.getFloatBufferRemote(conf);
 
 			Matrix c = Matrix.createRandomLocal("c", n, n, 1);
 			Matrix d = Matrix.createRandomLocal("d", n, n, 2);
@@ -210,8 +209,10 @@ public class DistMult {
 				sum.writeRemote(conf);
 			}
 			FileSystem fs = FileSystem.get(conf);
-			fs.rename(new Path(Matrix.getPath(sum.getName())), new Path(
-					"/mrcl/matrix/result"));
+			Path resultPath = new Path("/mrcl/matrix/result");
+			if (fs.exists(resultPath))
+				fs.delete(resultPath, true);
+			fs.rename(new Path(Matrix.getPath(sum.getName())), resultPath);
 
 			output.collect(key, sum);
 		}
