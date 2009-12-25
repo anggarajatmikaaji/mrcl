@@ -105,7 +105,9 @@ public class Content implements Writable {
 		float [] aData = new float[Block.BLOCK_SIZE_2];
 		float [] bData = new float[Block.BLOCK_SIZE_2];
 		float [] cData = new float[Block.BLOCK_SIZE_2];
+		a._floatBuffer.rewind();
 		a._floatBuffer.get(aData);
+		b._floatBuffer.rewind();
 		b._floatBuffer.get(bData);
 		sgemmJCublas(Block.BLOCK_SIZE, 1, aData, bData, 0, cData);
 		content._floatBuffer.put(cData);
