@@ -38,7 +38,7 @@ public class DistMult {
 	public void run() {
 		try {
 			Configuration conf = new Configuration(true);
-			int n = 5000;
+			int n = 10000;
 			Matrix a = Matrix.createRandomRemote("aa", n, n, 1, conf);
 			a.writeRemote(conf);
 			Matrix b = Matrix.createRandomRemote("vv", n, n, 2, conf);
