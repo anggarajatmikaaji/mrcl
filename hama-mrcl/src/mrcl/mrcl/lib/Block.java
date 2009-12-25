@@ -1,7 +1,7 @@
 package mrcl.lib;
 
 public class Block {
-	public static int BLOCK_SIZE = 1024;
+	public static int BLOCK_SIZE = -1;
 	private Matrix _matrix;
 	private int _blockRow;
 	private int _blockCol;
@@ -9,6 +9,9 @@ public class Block {
 	private int _innerCols;
 	
 	public Block(Matrix matrix, int blockRow, int blockCol) {
+		if (BLOCK_SIZE == -1)
+			throw new IllegalArgumentException("BLOCK_SIZE is not initialized.");
+		
 		_matrix = matrix;
 		_blockRow = blockRow;
 		_blockCol = blockCol;
