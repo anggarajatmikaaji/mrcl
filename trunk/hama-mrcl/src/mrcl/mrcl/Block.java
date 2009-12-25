@@ -8,7 +8,7 @@ import org.apache.hadoop.io.Writable;
 
 public class Block {
 	private Matrix _matrix;
-	public static final int BLOCK_SIZE = 10;
+	public static final int BLOCK_SIZE = 2048;
 	public static final int BLOCK_SIZE_2 = BLOCK_SIZE * BLOCK_SIZE;
 	private int _blockRow;
 	private int _blockCol;
