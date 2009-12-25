@@ -6,6 +6,10 @@ import java.io.OutputStreamWriter;
 import java.nio.FloatBuffer;
 import java.util.Iterator;
 
+import mrcl.lib.Block;
+import mrcl.lib.Matrix;
+import mrcl.lib.MultArgs;
+
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -36,14 +40,13 @@ public class DistMult extends Configured implements Tool {
 	@Override
 	public int run(String[] args) throws Exception {
 		try {
-			Options opts = new Options();
 		    Configuration conf = getConf();
-			JobConf job = new JobConf(DistMult.class);
-			GenericOptionsParser parser = new GenericOptionsParser(job, opts, args);
-			String[] extraArgs = parser.getRemainingArgs();
+			JobConf job = new JobConf(conf, DistMult.class);
 			
 			boolean useJCublas = job.getBoolean("useJCublas", false); // Example: -DuseJCublas=true
-			int n = job.getInt("size", 1000); // Example: -Dsize=100000
+			int n = job.getInt("matrix.size", 1000); // Example: -Dmatrix.size=100000
+			Block.BLOCK_SIZE = job.getInt("block.size", 1024); // Example: -Dblock.size=2048
+			
 			Matrix a = Matrix.createRandomRemote("bb", n, n, 1, conf);
 			a.writeRemote(conf);
 			Matrix b = Matrix.createRandomRemote("cc", n, n, 2, conf);

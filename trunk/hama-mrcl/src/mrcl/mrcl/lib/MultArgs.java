@@ -1,7 +1,7 @@
 /**
  * 
  */
-package mrcl;
+package mrcl.lib;
 
 import java.io.DataInput;
 

@@ -1,14 +1,13 @@
-package mrcl;
+package mrcl.lib;
 
 public class Block {
+	public static int BLOCK_SIZE = 1024;
 	private Matrix _matrix;
-	public static final int BLOCK_SIZE = 1024;
-	public static final int BLOCK_SIZE_2 = BLOCK_SIZE * BLOCK_SIZE;
 	private int _blockRow;
 	private int _blockCol;
 	private int _innerRows;
 	private int _innerCols;
-
+	
 	public Block(Matrix matrix, int blockRow, int blockCol) {
 		_matrix = matrix;
 		_blockRow = blockRow;
