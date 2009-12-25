@@ -49,7 +49,7 @@ public class Block {
 	}
 
 	public String getBlockPath() {
-		return _matrix.matrixPath() + "/blocks/r" + _blockRow + "/c" + _blockCol;
+		return _matrix.getMatrixPath() + "/blocks/r" + _blockRow + "/c" + _blockCol;
 	}
 
 }
