@@ -2,6 +2,7 @@ package mrcl.lib;
 
 public class Block {
 	public static int BLOCK_SIZE = 0;
+	public static final int DEFAULT_BLOCK_SIZE = 1024;
 	private Matrix _matrix;
 	private int _blockRow;
 	private int _blockCol;

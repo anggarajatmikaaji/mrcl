@@ -46,7 +46,7 @@ public class DistMult extends Configured implements Tool
 			JobConf job = new JobConf(conf, DistMult.class);
 
 			int n = job.getInt("matrix.size", 1000); // Example: -Dmatrix.size=100000
-			Block.BLOCK_SIZE = job.getInt("block.size", 1024); // Example: -Dblock.size=2048
+			Block.BLOCK_SIZE = job.getInt("block.size", Block.DEFAULT_BLOCK_SIZE); // Example: -Dblock.size=2048
 
 			Matrix a = Matrix.createRandomRemote("bb", n, n, 1, conf);
 			a.writeRemote(conf);
@@ -142,6 +142,7 @@ public class DistMult extends Configured implements Tool
 		public void configure(JobConf conf)
 		{
 			this.conf = conf;
+			Block.BLOCK_SIZE = conf.getInt("block.size", Block.DEFAULT_BLOCK_SIZE);
 		}
 
 		@Override
@@ -182,6 +183,7 @@ public class DistMult extends Configured implements Tool
 		public void configure(JobConf conf)
 		{
 			this.conf = conf;
+			Block.BLOCK_SIZE = conf.getInt("block.size", Block.DEFAULT_BLOCK_SIZE);
 		}
 
 		@Override
@@ -216,6 +218,7 @@ public class DistMult extends Configured implements Tool
 		public void configure(JobConf conf)
 		{
 			this.conf = conf;
+			Block.BLOCK_SIZE = conf.getInt("block.size", Block.DEFAULT_BLOCK_SIZE);
 		}
 
 		@Override
