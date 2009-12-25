@@ -3,9 +3,12 @@ package mrcl;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.nio.FloatBuffer;
 import java.util.Iterator;
 
+import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -20,24 +23,34 @@ import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reducer;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapred.TextInputFormat;
+import org.apache.hadoop.util.GenericOptionsParser;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
 
 @SuppressWarnings("deprecation")
-public class DistMult {
-	public static void main(String[] args) {
-		new DistMult().run();
+public class DistMult extends Configured implements Tool {
+	public static void main(String[] args) throws Exception {
+		ToolRunner.run(new DistMult(), args);
 	}
 
-	public void run() {
+	@Override
+	public int run(String[] args) throws Exception {
 		try {
-			Configuration conf = new Configuration(true);
-			int n = 10000;
+			Options opts = new Options();
+		    Configuration conf = getConf();
+			JobConf job = new JobConf(DistMult.class);
+			GenericOptionsParser parser = new GenericOptionsParser(job, opts, args);
+			String[] extraArgs = parser.getRemainingArgs();
+			
+			boolean useJCublas = job.getBoolean("useJCublas", false); // Example: -DuseJCublas=true
+			int n = job.getInt("size", 1000); // Example: -Dsize=100000
 			Matrix a = Matrix.createRandomRemote("bb", n, n, 1, conf);
 			a.writeRemote(conf);
 			Matrix b = Matrix.createRandomRemote("cc", n, n, 2, conf);
 			b.writeRemote(conf);
 			String jobName = makeJob(a, b, conf);
 
-			JobConf job = new JobConf(DistMult.class);
+			job.setJobName("MM-" + (useJCublas ? "JCublas" : "Java"));
 			job.setMapperClass(MultMap.class);
 			job.setReducerClass(MultReduce.class);
 			job.setCombinerClass(MultCombine.class);
@@ -56,22 +69,25 @@ public class DistMult {
 
 			JobClient.runJob(job).waitForCompletion();
 
-//			FloatBuffer distResult = Matrix.readRemote("result", conf)
-//					.getFloatBufferRemote(conf);
-//
-//			Matrix c = Matrix.createRandomLocal("c", n, n, 1);
-//			Matrix d = Matrix.createRandomLocal("d", n, n, 2);
-//			Matrix e = Matrix.multiplyLocal("e", c, d);
-//			FloatBuffer localResult = e.getFloatBufferLocal();
-//
-//			for (int i = 0; i < 100; i++) {
-//				System.out.printf("%f, %f\n", distResult.get(i), localResult
-//						.get(i));
-//			}
+			if (job.getBoolean("validate", false)) { // Example: -Dvalidate=true
+				FloatBuffer distResult = Matrix.readRemote("result", conf)
+						.getFloatBufferRemote(conf);
+	
+				Matrix c = Matrix.createRandomLocal("c", n, n, 1);
+				Matrix d = Matrix.createRandomLocal("d", n, n, 2);
+				Matrix e = Matrix.multiplyLocal("e", c, d);
+				FloatBuffer localResult = e.getFloatBufferLocal();
+	
+				for (int i = 0; i < 100; i++) {
+					System.out.printf("%f, %f\n", distResult.get(i), localResult
+							.get(i));
+				}
+			}
 
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
+		return 0;
 	}
 
 	public String makeJob(Matrix a, Matrix b, Configuration conf) {
