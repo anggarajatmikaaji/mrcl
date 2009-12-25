@@ -234,7 +234,7 @@ public class Matrix implements Writable {
 	public FloatBuffer getFloatBufferRemote(Configuration conf) {
 		FloatBuffer result = FloatBuffer.allocate(_cols * _rows);
 		for (int row = 0; row < _rows; row++) {
-			for (int bCol = 0; bCol <= _blockCols; bCol++) {
+			for (int bCol = 0; bCol < _blockCols; bCol++) {
 				int from = Block.BLOCK_SIZE * bCol;
 				int to = Math.min(Block.BLOCK_SIZE * (bCol + 1), _cols);
 
