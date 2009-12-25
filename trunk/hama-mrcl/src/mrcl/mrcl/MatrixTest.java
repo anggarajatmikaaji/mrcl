@@ -2,7 +2,7 @@ package mrcl;
 
 import java.nio.FloatBuffer;
 
-import mrcl.lib.Content;
+import mrcl.lib.JavaMatrixMultiplier;
 import mrcl.lib.Matrix;
 
 public class MatrixTest {
@@ -12,7 +12,7 @@ public class MatrixTest {
 		Matrix b = Matrix.createRandomLocal("b", n, n, 3);
 		
 		FloatBuffer result = FloatBuffer.allocate(a.getRows() * b.getCols());
-		Content.sgemmJava(n, 1, a.getFloatBufferLocal(), b.getFloatBufferLocal(), 0, result);
+		JavaMatrixMultiplier.sgemmJava(n, 1, a.getFloatBufferLocal(), b.getFloatBufferLocal(), 0, result);
 		
 		Matrix c = Matrix.multiplyLocal("c", a, b);
 		FloatBuffer cData = c.getFloatBufferLocal();

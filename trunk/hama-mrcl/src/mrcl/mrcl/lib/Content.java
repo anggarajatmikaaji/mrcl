@@ -1,6 +1,3 @@
-/**
- * 
- */
 package mrcl.lib;
 
 import java.io.DataInput;
@@ -16,21 +13,20 @@ import java.nio.FloatBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Random;
 
-import jcuda.Pointer;
-import jcuda.Sizeof;
-import jcuda.jcublas.JCublas;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Writable;
 
+/**
+ * Contains the actual content of a matrix as byte/float buffer representation.
+ */
 public class Content implements Writable {
 	private ByteBuffer _byteBuffer;
 	private FloatBuffer _floatBuffer;
 	private Block _block;
 
-	private Content(Block block) {
+	public Content(Block block) {
 		_block = block;
 		_byteBuffer = ByteBuffer.allocate(Block.BLOCK_SIZE * Block.BLOCK_SIZE * 4);
 		_byteBuffer.rewind();
@@ -95,28 +91,13 @@ public class Content implements Writable {
 		_floatBuffer.rewind();
 		return ret;
 	}
-
-	public static Content multiplyCublas(Block block, Content a, Content b) {
-		Content content = new Content(block);
-		float [] aData = new float[Block.BLOCK_SIZE * Block.BLOCK_SIZE];
-		float [] bData = new float[Block.BLOCK_SIZE * Block.BLOCK_SIZE];
-		float [] cData = new float[Block.BLOCK_SIZE * Block.BLOCK_SIZE];
-		a._floatBuffer.rewind();
-		a._floatBuffer.get(aData);
-		b._floatBuffer.rewind();
-		b._floatBuffer.get(bData);
-		sgemmJCublas(Block.BLOCK_SIZE, 1, aData, bData, 0, cData);
-		content._floatBuffer.put(cData);
-		return content;
+	
+	public FloatBuffer getFloatBuffer() {
+		return _floatBuffer;
 	}
-
-	public static Content multiplyJava(Block block, Content a, Content b) {
-//		Block block = new Block(matrix, a._block.getBlockRow(), b._block
-//				.getBlockCol());
-		Content content = new Content(block);
-		sgemmJava(Block.BLOCK_SIZE, 1, a._floatBuffer, b._floatBuffer, 0,
-				content._floatBuffer);
-		return content;
+	
+	public ByteBuffer getByteBuffer() {
+		return _byteBuffer;
 	}
 
 	public static Content add(Block block, Content a, Content b) {
@@ -139,54 +120,6 @@ public class Content implements Writable {
 					- b._floatBuffer.get(i));
 		}
 		return content;
-	}
-
-	private static void sgemmJCublas(int n, float alpha, float A[], float B[],
-			float beta, float C[]) {
-		int nn = n * n;
-
-		// Initialize JCublas
-		JCublas.cublasInit();
-
-		// Allocate memory on the device
-		Pointer d_A = new Pointer();
-		Pointer d_B = new Pointer();
-		Pointer d_C = new Pointer();
-		JCublas.cublasAlloc(nn, Sizeof.FLOAT, d_A);
-		JCublas.cublasAlloc(nn, Sizeof.FLOAT, d_B);
-		JCublas.cublasAlloc(nn, Sizeof.FLOAT, d_C);
-
-		// Copy the memory from the host to the device
-		JCublas.cublasSetVector(nn, Sizeof.FLOAT, Pointer.to(A), 1, d_A, 1);
-		JCublas.cublasSetVector(nn, Sizeof.FLOAT, Pointer.to(B), 1, d_B, 1);
-		JCublas.cublasSetVector(nn, Sizeof.FLOAT, Pointer.to(C), 1, d_C, 1);
-
-		// Execute sgemm
-		JCublas.cublasSgemm('n', 'n', n, n, n, alpha, d_A, n, d_B, n, beta,
-				d_C, n);
-
-		// Copy the result from the device to the host
-		JCublas.cublasGetVector(nn, Sizeof.FLOAT, d_C, 1, Pointer.to(C), 1);
-
-		// Clean up
-		JCublas.cublasFree(d_A);
-		JCublas.cublasFree(d_B);
-		JCublas.cublasFree(d_C);
-
-		JCublas.cublasShutdown();
-	}
-
-	public static void sgemmJava(int n, float alpha, FloatBuffer A,
-			FloatBuffer B, float beta, FloatBuffer C) {
-		for (int i = 0; i < n; ++i) {
-			for (int j = 0; j < n; ++j) {
-				float prod = 0;
-				for (int k = 0; k < n; ++k) {
-					prod += A.get(k * n + i) * B.get(j * n + k);
-				}
-				C.put(j * n + i, alpha * prod + beta * C.get(j * n + i));
-			}
-		}
 	}
 
 	@Override
