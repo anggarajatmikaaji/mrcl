@@ -53,7 +53,7 @@ GPU는 그 성격상 실수와 matrix 연산에 특화되어 일반 CPU보다 �
 \begin{itemize}
 	\item Matrix의 각 원소들은 single precision floating point format을 통해서 표현된다. CUDA 라이브러리에서 double precision을 지원하기는 하지만 JCublas와 연동할 때 내부적인 변환에 따른 성능 저하 및 심각한 계산 오류가 발생해 사용할 수 없었다.\footnote{파일럿 테스트 과정에서 무작위로 생성한 $100 \times 100$ 행렬을 이용해 곱셈을 했을 때 single precision으로 입력을 주어 계산하면 한 원소가 250 정도의 값을 가지는데 double precision의 경우 0에 매우 가까운 실수가 되어 correctness 판정을 통과하지 못했다.}
 	\item 각 matrix는 dense matrix이다. Sparse matrix의 경우 모든 원소를 연속적으로 저장하지 않고 개별적인 쌍으로 저장하기 때문에 원소를 접근할 때 index를 key로 하는 탐색 작업이 필요하다. 이것은 GPU처럼 연속적인 메모리를 할당하여 한꺼번에 pipelining하는 구조에 적합하지 않으므로 우리는 dense matrix인 경우만 고려하였다.
-	\item {\color{Orange}TODO: HDFS 사용 여부에 따라 달라질 수 있음} 계산에 필요한 2개의 matrix는 클러스터의 모든 노드가 각각 복사본을 저장하고 있다. 전체 노드 수의 log에 비례하는 시간 만에 모두 복사할 수 있으므로 matrix multiplication의 시간복잡도에 영향을 주지 않으므로 구현을 간단히 하기 위해 그러한 분산 저장 과정을 고려하지 않는다.
+	\item 작은 클러스터에서 HDFS 상의 임의의 파일을 읽어올 때 걸리는 시간은 평균적으로 동일하다. 이는 구현을 간단히 하기 위해 Hadoop이 제공하는 data locality를 고려하지 않는다는 뜻이다.
 \end{itemize}
 
 \subsection{Block Approach}
@@ -138,7 +138,7 @@ NVIDIA에서는 CUDA라는 기술을 통해 개발자들이 C 언어로 직접 G
 또한 CUDA에 대한 사용 경험이 없었기 때문에 드라이버 설치나 이용 과정에서도 시행착오를 겪어야 했고, Hama의 한계나 JCublas의 double precision 지원 문제 등도 이에 일조하였다.
 하지만 이렇게 기존의 연산 문제를 다른 각도에서 풀어봄으로써 확실히 MapReduce의 가능성과 한계를 알 수 있었다는 점은 흥미롭다.
 
-앞으로 더 해보고 싶은 것은 CUDA를 이용하지 않고 CPU로만 계산하되 Java가 아닌 C로 최적화되어 작성된 CBLAS 라이브러리를 Java와 붙여서 GPU가 없는 환경에서도 어느 정도 성능 향상을 볼 수 있도록 하여 보다 범용적으로 쓰일 수 있게 하는 것이다.
+앞으로 더 해보고 싶은 것은 이번에 활용하지 못한 Hadoop의 data locality 이점을 살릴 수 있도록 구현 코드의 구조를 다시 한 번 손보고, CUDA를 이용하지 않고 CPU로만 계산하되 Java가 아닌 C로 최적화되어 작성된 CBLAS 라이브러리를 Java와 붙여서 GPU가 없는 환경에서도 어느 정도 성능 향상을 볼 수 있도록 하여 보다 범용적으로 쓰일 수 있게 하는 것이다.
 또한 이 결과를 오픈소스로 잘 정리하여 누구나 활용 가능하도록 하였으면 한다.\footnote{현재 Google Code에 Mr.CL 프로젝트를 개설해둔 상태이다. \url{http://code.google.com/p/mrcl/} 참조.}
 
 \end{multicols}
