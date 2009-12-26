@@ -145,28 +145,27 @@ NVIDIA에서는 CUDA라는 기술을 통해 개발자들이 C 언어로 직접 G
 \subsection{Pure Java vs. JCublas}
 \begin{minipage}{\linewidth}
 	\centering
-	\includegraphics[width=0.9\linewidth]{chart-java-vs-jcublas.png}
+	\includegraphics[width=0.8\linewidth]{chart-java-vs-jcublas.png}
 	\figcaption{Matrix size에 따른 방식별 연산 수행시간 비교}
 	\label{fig:java-vs-jcublas}
 \end{minipage}
 \subsection{Variable block size with Java}
 \begin{minipage}{\linewidth}
 	\centering
-	\includegraphics[width=0.9\linewidth]{chart-java-with-variable-block-size.png}
+	\includegraphics[width=0.8\linewidth]{chart-java-with-variable-block-size.png}
 	\figcaption{Java에서 block size 별 연산 수행시간 비교}
 	\label{fig:java-blocksize}
 \end{minipage}
 \subsection{Variable block size with JCublas}
 \begin{minipage}{\linewidth}
 	\centering
-	\includegraphics[width=0.9\linewidth]{chart-jcublas-with-variable-block-size.png}
+	\includegraphics[width=0.8\linewidth]{chart-jcublas-with-variable-block-size.png}
 	\figcaption{JCublas에서 block size 별 연산 수행시간 비교}
 	\label{fig:jcublas-blocksize}
 \end{minipage}
 
 \section{Related Works: Hama}
-프로젝트 초기에는 matrix multiplication 구현 자체에 대한 부담을 줄이고 GPU를 이용한 가속에 집중하기 위해 이미 Hadoop 기반으로 다양한 matrix 연산을 구현한 Apache 재단의 Hama 프로젝트를 이용하였다.
-특히 Hama는 dense matrix 곱셈을 block 방식으로 구현하고 있었다.
+프로젝트 초기에는 matrix multiplication 구현 자체에 대한 부담을 줄이기 위해 이미 Hadoop 기반으로 block 방식 matrix 연산을 구현한 Apache 재단의 Hama 프로젝트를 이용하였다.
 하지만 다음과 같은 이유로 Hama 프로젝트를 사용하지 않고 직접 Hadoop MapReduce로 구현하게 되었다.
 \begin{itemize}
 	\item Hama가 Hadoop 기반 데이터베이스인 HBase를 이용하고 있었고, 아직 HBase가 성능 측면이나 프로젝트 자체의 성숙도가 떨어져 실제 우리가 원하는 규모의 연산을 돌리기에는 적합치 않았다.\footnote{우리 목표는 $10^4$이나 $10^5$ 정도인데, Hama 개발자 스스로 자신의 블로그에서 $5000 \times 5000$ 정도가 한계라고 밝히고 있음.\\\url{http://blog.udanax.org/2009/01/distributed-matrix-multiplication-with.html}}
@@ -176,15 +175,15 @@ NVIDIA에서는 CUDA라는 기술을 통해 개발자들이 C 언어로 직접 G
 \end{itemize}
 
 \section{Conclusion}
-{\color{BurntOrange} TODO: 실험 결과 정리}
+실험 결과를 살펴보면 Java와 JCublas 각각 4000에서 8000으로, 1만에서 2만으로 입력 행렬 크기가 커질 때 8배 가량 연산 시간이 늘어나고 있어 $O(n^3)$으로 증가함을 보여주지만 JCublas를 이용한 가속이 상당한 성능 향상을 가져왔음을 알 수 있다.
+하나 특이한 점은 block size를 절반으로 줄였을 때 Java에서는 성능이 상승한 반면 JCublas에서는 성능이 하락하여 전자는 CPU 캐시 hit율 향상 효과를 보았고 후자는 pipelining이 덜 되어 역효과를 보았다는 추측을 할 수 있게 하였다.
+
 이번 실험에서 빠진 부분이 같은 크기의 matrix를 처리할 때 클러스터의 노드 수가 늘어나면 얼마나 성능 향상 효과가 있는가 하는 점으로, scalability를 확보하고자 MapReudce를 도입한 의미를 살리려면 향후 반드시 조사해야 할 부분이다.
+특히 data locality를 전혀 살리지 못했기 때문에 클러스터 크기를 늘리려면 repliaction 수를 조절한다든지 구현 방식을 개선한다든지 하는 추가 작업도 필요할 것으로 생각된다.
+이렇게 기존의 연산 문제를 다른 각도에서 풀어봄으로써 확실히 MapReduce의 가능성과 한계를 알 수 있었다는 점은 흥미롭다.
 
-이번 실험의 경우 GPU가 장착된 클러스터를 대규모로 구축할 수 없었고 실제 하드웨어 환경을 구축하기까지 많은 시간이 걸렸다는 점이 걸림돌로 작용하였다.
-또한 CUDA에 대한 사용 경험이 없었기 때문에 드라이버 설치나 이용 과정에서도 시행착오를 겪어야 했고, Hama의 한계나 JCublas의 double precision 지원 문제 등도 이에 일조하였다.
-하지만 이렇게 기존의 연산 문제를 다른 각도에서 풀어봄으로써 확실히 MapReduce의 가능성과 한계를 알 수 있었다는 점은 흥미롭다.
-
-앞으로 더 해보고 싶은 것은 이번에 활용하지 못한 Hadoop의 data locality 이점을 살릴 수 있도록 구현 코드의 구조를 다시 한 번 손보고, CUDA를 이용하지 않고 CPU로만 계산하되 Java가 아닌 C로 최적화되어 작성된 CBLAS 라이브러리를 Java와 붙여서 GPU가 없는 환경에서도 어느 정도 성능 향상을 볼 수 있도록 하여 보다 범용적으로 쓰일 수 있게 하는 것이다.
-또한 이 결과를 오픈소스로 잘 정리하여 누구나 활용 가능하도록 하였으면 한다.\footnote{현재 Google Code에 Mr.CL 프로젝트를 개설해둔 상태이다. \url{http://code.google.com/p/mrcl/} 참조.}
+앞으로 더 해보고 싶은 것은 CUDA를 이용하지 않고 CPU로만 계산하되 Java가 아닌 C로 최적화되어 작성된 CBLAS 라이브러리를 Java와 붙여서 GPU가 없는 환경에서도 어느 정도 성능 향상을 볼 수 있도록 하여 보다 범용적으로 쓰일 수 있게 하는 것이다.
+또한 이 결과를 오픈소스로 잘 정리하여 누구나 활용 가능하도록 할 계획이다.\footnote{현재 Google Code에 Mr.CL 프로젝트를 개설해둔 상태이다. \url{http://code.google.com/p/mrcl/} 참조.}
 
 \end{multicols}
 \end{document}
