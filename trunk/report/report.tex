@@ -103,33 +103,40 @@ NVIDIA에서는 CUDA라는 기술을 통해 개발자들이 C 언어로 직접 G
 \subsubsection{Mapper}
 \begin{description}
 	\item[Input] \hfill \\
-	$(A, B, r)$ 쌍들이 입력으로 주어진다.
+	$(\text{key}, \text{value})  = (l, (A, B, r))$ ($l$은 텍스트 입력의 문자 번호로 무시됨)
 	\begin{itemize}
 		\item $A$ : 행렬 $\mathbf{A}$의 이름
 		\item $B$ : 행렬 $\mathbf{B}$의 이름
 		\item $r$ : 곱셈을 수행할 $\mathbf{B}$의 block들의 행과 $\mathbf{A}$의 block들의 열을 의미한다. 즉, block 단위로 바라보았을 때 행렬 $\mathbf{A}$의 $r$열과 행렬 $\mathbf{B}$의 $r$행을 곱한다.
 	\end{itemize}
 	\item[Output] \hfill \\
-	$((A, B), I)$
+	$(\text{key}, \text{values}) = ((A, B), C_r)$
 	\begin{itemize}
 		\item $A$, $B$ : 입력과 같다.
-		\item $I$ : 연산의 결과로 HDFS 상의 \texttt{\_\_tmp/A\_B\_r} 디렉토리에 위 곱셈의 결과인 $N \times N$ matrix $\mathbf{C}$가 저장되는데 그 위치를 가리킨다.
+		\item $C_r$ : 연산의 결과로 HDFS 상의 \texttt{\_\_tmp/A\_B\_r} 디렉토리에 위 곱셈의 결과인 $N \times N$ matrix $\mathbf{C}_r$이 저장되는데 그 위치를 가리킨다.
 	\end{itemize}
 	\item[Mechanism] \hfill \\
 	곱셈을 수행하고자 하는 block의 행과 열 번호를 알고 있으므로 우리는 다음과 같이 계산할 수 있다. $\mathbf{A}(i,j)$가 행렬 $\mathbf{A}$를 block 단위로 보았을 때 $i$행 $j$열 block이라고 하고 결과값을 가지는 행렬을 $\mathbf{C}$라 하면,
 	\begin{equation*}
-		\mathbf{C}(i,j) = \mathbf{A}(i,r) \times \mathbf{B}(r,j)
+		\mathbf{C}_r = \sum_{i,j}{\mathbf{A}(i,r) \times \mathbf{B}(r,j)}
 	\end{equation*}
-	가 성립한다. 따라서 $N \times N$ 행렬 $\mathbf{C}$를 구할 수 있으며 이를 저장한다.
+	가 성립한다. 따라서 $N \times N$ 행렬 $\mathbf{C}_r$를 구할 수 있으며 이를 저장한다.
 \end{description}
 \subsubsection{Reducer}
 \begin{description}
 	\item[Input] \hfill \\
-	blah blah
+	$(\text{key}, \text{values}) = ((A, B), C_r)$
+	\begin{itemize}
+		\item $A$, $B$, $C_r$ : Mapper의 출력과 같다.
+	\end{itemize}
 	\item[Output] \hfill \\
-	blah blah
+	$(\text{key}, \text{value}) = ((A, B), C)$
+	\begin{itemize}
+		\item $A$, $B$ : Mapper의 출력과 같다. 
+		\item $C$ : 최종 결과 matrix $\mathbf{C}$가 저장된 위치를 가리킨다.
+	\end{itemize}
 	\item[Mechanism] \hfill \\
-	blah blah
+	Mapper에서 만든 $\mathbf{C}(i,j)$들을 모두 더하여 최종 곱셈 결과 matrix $\mathbf{C}$를 생성한다.
 \end{description}
 
 \section{Performance Analysis}
