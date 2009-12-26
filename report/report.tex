@@ -116,9 +116,9 @@ NVIDIA에서는 CUDA라는 기술을 통해 개발자들이 C 언어로 직접 G
 		\item $C_r$ : 연산의 결과로 HDFS 상의 \texttt{\_\_tmp/A\_B\_r} 디렉토리에 위 곱셈의 결과인 $N \times N$ matrix $\mathbf{C}_r$이 저장되는데 그 위치를 가리킨다.
 	\end{itemize}
 	\item[Mechanism] \hfill \\
-	곱셈을 수행하고자 하는 block의 행과 열 번호를 알고 있으므로 우리는 다음과 같이 계산할 수 있다. $\mathbf{A}(i,j)$가 행렬 $\mathbf{A}$를 block 단위로 보았을 때 $i$행 $j$열 block이라고 하고 결과값을 가지는 행렬을 $\mathbf{C}$라 하면,
+	곱셈을 수행하고자 하는 block의 행과 열 번호를 알고 있으므로 우리는 다음과 같이 계산할 수 있다. $m$은 $\mathbf{A}$의 block 열 개수이고 $\mathbf{A}(i,j)$가 행렬 $\mathbf{A}$를 block 단위로 보았을 때 $i$행 $j$열 block이라고 하고 결과값을 가지는 행렬을 $\mathbf{C}_r$라 하면,
 	\begin{equation*}
-		\mathbf{C}_r = \sum_{i,j}{\mathbf{A}(i,r) \times \mathbf{B}(r,j)}
+		\mathbf{C}_r(i,j) = \mathbf{A}(i,r) \times \mathbf{B}(r,j) \:\:\forall \,i,j=1..m
 	\end{equation*}
 	가 성립한다. 따라서 $N \times N$ 행렬 $\mathbf{C}_r$를 구할 수 있으며 이를 저장한다.
 \end{description}
@@ -137,6 +137,7 @@ NVIDIA에서는 CUDA라는 기술을 통해 개발자들이 C 언어로 직접 G
 	\end{itemize}
 	\item[Mechanism] \hfill \\
 	Mapper에서 만든 $\mathbf{C}(i,j)$들을 모두 더하여 최종 곱셈 결과 matrix $\mathbf{C}$를 생성한다.
+	Reducer의 일은 Combiner에서도 동일하게 수행하여 전체 계산이 좀더 빠르게 수행되도록 하였다.
 \end{description}
 
 \section{Performance Analysis}
