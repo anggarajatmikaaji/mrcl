@@ -76,8 +76,7 @@ Matrix multiplication을 구현하는 방법으로는 정의대로 계산하는 
 Eq.~\eqref{eq:OuterProduct}를 보면 두 matrix의 열과 행 vector들을 각각 outer product를 취하여 나온 matrix들을 모두 더하면 전체 multiplication 결과를 완성할 수 있음을 알 수 있다.
 
 여기서 각 원소들은 하나의 실수가 아니라 submatrix(앞에서 block이라고 표현했던 matrix의 일부)여도 되므로, 우리는 이처럼 block 단위로 쪼개고 다시 합치는 과정을 MapReduce로, 각 block들을 곱하는 과정을 개별 노드에서 GPU로 가속하는 방식을 취하였다.
-
-이렇게 하면 $O(n^3)$ 만큼의 연산 시간이 걸리지만, {\color{Orange}TODO: I/O복잡도 예측}
+이렇게 하면 $O(n^3)$ 만큼의 연산 시간이 걸리지만, block 단위로 분산 저장되어 있을 경우 I/O 비용을 크게 줄일 수 있다는 장점이 생긴다.
 
 \subsection{NVIDIA CUDA}
 실험에 사용된 클러스터 상의 모든 노드에는 NVIDIA의 그래픽 카드가 장착되어 있다.
@@ -121,6 +120,7 @@ NVIDIA에서는 CUDA라는 기술을 통해 개발자들이 C 언어로 직접 G
 		\mathbf{C}_r(i,j) = \mathbf{A}(i,r) \times \mathbf{B}(r,j) \:\:\forall \,i,j=1..m
 	\end{equation*}
 	가 성립한다. 따라서 $m \times m$개의 block으로 이루어진 $N \times N$ 행렬 $\mathbf{C}_r$를 구할 수 있으며 이를 저장한다.
+	이 곱셈 과정이 JCublas로 가속된다.
 \end{description}
 \subsubsection{Reducer}
 \begin{description}
@@ -136,7 +136,7 @@ NVIDIA에서는 CUDA라는 기술을 통해 개발자들이 C 언어로 직접 G
 		\item $C$ : 최종 결과 matrix $\mathbf{C}$가 저장된 위치를 가리킨다.
 	\end{itemize}
 	\item[Mechanism] \hfill \\
-	Mapper에서 만든 $\mathbf{C}(i,j)$들을 모두 더하여 최종 곱셈 결과 matrix $\mathbf{C}$를 생성한다.
+	Mapper에서 만든 $\mathbf{C}_r$들을 모두 더하여 최종 곱셈 결과 matrix $\mathbf{C}$를 생성한다.
 	Reducer의 일은 Combiner에서도 동일하게 수행하여 전체 계산이 좀더 빠르게 수행되도록 하였다.
 \end{description}
 
