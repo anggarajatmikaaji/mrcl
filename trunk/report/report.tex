@@ -9,6 +9,7 @@
 \UseMicrotypeSet[expansion]{dhucsmicro}
 
 % 기타 환경 설정
+\usepackage{graphicx}
 \usepackage{amsmath}
 \usepackage{palatino}
 \usepackage[onehalfspacing]{setspace}
@@ -48,7 +49,7 @@ GPU는 그 성격상 실수와 matrix 연산에 특화되어 일반 CPU보다 �
 이를 통해 분산 시스템을 이용한 대용량의 데이터에 대한 확장성(scalability)을 얻고, GPU로 연산 속도를 향상시킴으로써 이전보다 개선된 matrix multiplication을 수행할 수 있었다.
 
 \section{Design Overview}
-\subsection{Assumptions}
+\subsection{Assumptions}chart-java-vs-jcublas
 우리가 목표로 하는 시스템의 효과적인 설계와 구현을 위해 약간의 가정이 필요하다.
 \begin{itemize}
 	\item Matrix의 각 원소들은 single precision floating point format을 통해서 표현된다. CUDA 라이브러리에서 double precision을 지원하기는 하지만 JCublas와 연동할 때 내부적인 변환에 따른 성능 저하 및 심각한 계산 오류가 발생해 사용할 수 없었다.\footnote{파일럿 테스트 과정에서 각 원소가 $[0,1]$ 구간에서 무작위로 생성된 $100 \times 100$ 행렬 2개을 곱했을 때 single precision으로 입력을 주어 계산하면 한 원소가 250 정도의 값을 가지는데 double precision 입력의 경우 0에 매우 가까운 실수가 되어 correctness 판정을 통과하지 못했다.}
@@ -141,11 +142,29 @@ NVIDIA에서는 CUDA라는 기술을 통해 개발자들이 C 언어로 직접 G
 \end{description}
 
 \section{Performance Analysis}
-\subsection{Pure Java}
-\subsection{JCublas with NVIDIA CUDA}
+\subsection{Pure Java vs. JCublas}
+\begin{minipage}{\linewidth}
+	\centering
+	\includegraphics[width=0.9\linewidth]{chart-java-vs-jcublas.png}
+	\figcaption{Matrix size에 따른 방식별 연산 수행시간 비교}
+	\label{fig:java-vs-jcublas}
+\end{minipage}
+\subsection{Variable block size with Java}
+\begin{minipage}{\linewidth}
+	\centering
+	\includegraphics[width=0.9\linewidth]{chart-java-with-variable-block-size.png}
+	\figcaption{Java에서 block size 별 연산 수행시간 비교}
+	\label{fig:java-blocksize}
+\end{minipage}
+\subsection{Variable block size with JCublas}
+\begin{minipage}{\linewidth}
+	\centering
+	\includegraphics[width=0.9\linewidth]{chart-jcublas-with-variable-block-size.png}
+	\figcaption{JCublas에서 block size 별 연산 수행시간 비교}
+	\label{fig:jcublas-blocksize}
+\end{minipage}
 
-\section{Related Works}
-\subsection{Apache Hama Project}
+\section{Related Works: Hama}
 프로젝트 초기에는 matrix multiplication 구현 자체에 대한 부담을 줄이고 GPU를 이용한 가속에 집중하기 위해 이미 Hadoop 기반으로 다양한 matrix 연산을 구현한 Apache 재단의 Hama 프로젝트를 이용하였다.
 특히 Hama는 dense matrix 곱셈을 block 방식으로 구현하고 있었다.
 하지만 다음과 같은 이유로 Hama 프로젝트를 사용하지 않고 직접 Hadoop MapReduce로 구현하게 되었다.
