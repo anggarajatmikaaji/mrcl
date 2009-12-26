@@ -120,7 +120,7 @@ NVIDIA에서는 CUDA라는 기술을 통해 개발자들이 C 언어로 직접 G
 	\begin{equation*}
 		\mathbf{C}_r(i,j) = \mathbf{A}(i,r) \times \mathbf{B}(r,j) \:\:\forall \,i,j=1..m
 	\end{equation*}
-	가 성립한다. 따라서 $N \times N$ 행렬 $\mathbf{C}_r$를 구할 수 있으며 이를 저장한다.
+	가 성립한다. 따라서 $m \times m$개의 block으로 이루어진 $N \times N$ 행렬 $\mathbf{C}_r$를 구할 수 있으며 이를 저장한다.
 \end{description}
 \subsubsection{Reducer}
 \begin{description}
