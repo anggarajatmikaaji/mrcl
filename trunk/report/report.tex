@@ -51,7 +51,7 @@ GPU는 그 성격상 실수와 matrix 연산에 특화되어 일반 CPU보다 �
 \subsection{Assumptions}
 우리가 목표로 하는 시스템의 효과적인 설계와 구현을 위해 약간의 가정이 필요하다.
 \begin{itemize}
-	\item Matrix의 각 원소들은 single precision floating point format을 통해서 표현된다. CUDA 라이브러리에서 double precision을 지원하기는 하지만 JCublas와 연동할 때 내부적인 변환에 따른 성능 저하 및 심각한 계산 오류가 발생해 사용할 수 없었다.\footnote{파일럿 테스트 과정에서 무작위로 생성한 $100 \times 100$ 행렬을 이용해 곱셈을 했을 때 single precision으로 입력을 주어 계산하면 한 원소가 250 정도의 값을 가지는데 double precision의 경우 0에 매우 가까운 실수가 되어 correctness 판정을 통과하지 못했다.}
+	\item Matrix의 각 원소들은 single precision floating point format을 통해서 표현된다. CUDA 라이브러리에서 double precision을 지원하기는 하지만 JCublas와 연동할 때 내부적인 변환에 따른 성능 저하 및 심각한 계산 오류가 발생해 사용할 수 없었다.\footnote{파일럿 테스트 과정에서 각 원소가 $[0,1]$ 구간에서 무작위로 생성된 $100 \times 100$ 행렬 2개을 곱했을 때 single precision으로 입력을 주어 계산하면 한 원소가 250 정도의 값을 가지는데 double precision 입력의 경우 0에 매우 가까운 실수가 되어 correctness 판정을 통과하지 못했다.}
 	\item 각 matrix는 dense matrix이다. Sparse matrix의 경우 모든 원소를 연속적으로 저장하지 않고 개별적인 쌍으로 저장하기 때문에 원소를 접근할 때 index를 key로 하는 탐색 작업이 필요하다. 이것은 GPU처럼 연속적인 메모리를 할당하여 한꺼번에 pipelining하는 구조에 적합하지 않으므로 우리는 dense matrix인 경우만 고려하였다.
 	\item 작은 클러스터에서 HDFS 상의 임의의 파일을 읽어올 때 걸리는 시간은 평균적으로 동일하다. 이는 구현을 간단히 하기 위해 Hadoop이 제공하는 data locality를 고려하지 않는다는 뜻이다.
 \end{itemize}
@@ -93,16 +93,34 @@ NVIDIA에서는 CUDA라는 기술을 통해 개발자들이 C 언어로 직접 G
 	\item Intel Core2 E6600 (2.4GHz), RAM 4GB, SATA2 HDD 320GB, NVIDIA GTX250
 	\item Network: 100Mbps Ethernet (ipTIME Pro54G 공유기로 private network 구성)
 \end{itemize}
+
 \subsection{Data Model}
+모든 matrix는 HDFS에 저장된다. $N \times N$ 크기를 가지는 2개의 matrix는 임의로 붙인 이름에 따라 디렉토리가 만들어지고 그 아래에 block 별로 다시 디렉토리가 만들어져 분할 저장된다.
+예를 들어 example이라는 이름의 matrix의 위에서 5번째(행), 왼쪽에서 3번째(열) 위치에 있는 block은 \texttt{/example/5/3} 디렉토리에 실제 원소들의 값이 저장되는 것이다.
+이렇게 저장된 데이터는 MapReduce 실행 과정에서 필요에 따라 꺼내와 사용하게 되며, 이때 이 데이터들은 Hadoop MapReduce의 입출력 메카니즘을 이용하지 않고 직접 파일시스템 API를 통해 HDFS로 접근하기 때문에 data locality는 고려되지 않았다.
+
 \subsection{MapReduce Execution}
 \subsubsection{Mapper}
 \begin{description}
 	\item[Input] \hfill \\
-	blah blah
+	$(A, B, r)$ 쌍들이 입력으로 주어진다.
+	\begin{itemize}
+		\item $A$ : 행렬 $\mathbf{A}$의 이름
+		\item $B$ : 행렬 $\mathbf{B}$의 이름
+		\item $r$ : 곱셈을 수행할 $B$ block들의 행과 $A$ block들의 열을 의미한다. 즉, block 단위로 바라보았을 때 행렬 $A$의 $r$열과 행렬 $B$의 $r$행을 곱한다.
+	\end{itemize}
 	\item[Output] \hfill \\
-	blah blah
+	$((A, B), I)$
+	\begin{itemize}
+		\item $A$, $B$ : 입력과 같다.
+		\item $I$ : 연산의 결과로 HDFS 상의 \texttt{\_\_tmp/A\_B\_r} 디렉토리에 위 곱셈의 결과인 $N \times N$ matrix $\mathbf{C}$가 저장되는데 그 위치를 가리킨다.
+	\end{itemize}
 	\item[Mechanism] \hfill \\
-	blah blah
+	곱셈을 수행하고자 하는 block의 행과 열 번호를 알고 있으므로 우리는 다음과 같이 계산할 수 있다. $\mathbf{A}(i,j)$을 행렬 $\mathbf{A}$의 block 단위로 보았을 때 $i$행 $j$열 block이라고 하고 결과값을 가지는 행렬을 $\mathbf{C}$라 하면,
+	\begin{equation*}
+		\mathbf{C}(i,j) = \mathbf{A}(i,r) \times \mathbf{B}(r,j)
+	\end{equation*}
+	가 성립한다. 따라서 $N \times N$ 행렬 $\mathbf{C}$를 구할 수 있으며 이를 저장한다.
 \end{description}
 \subsubsection{Reducer}
 \begin{description}
