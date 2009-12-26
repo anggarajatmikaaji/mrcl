@@ -107,7 +107,7 @@ NVIDIA에서는 CUDA라는 기술을 통해 개발자들이 C 언어로 직접 G
 	\begin{itemize}
 		\item $A$ : 행렬 $\mathbf{A}$의 이름
 		\item $B$ : 행렬 $\mathbf{B}$의 이름
-		\item $r$ : 곱셈을 수행할 $B$ block들의 행과 $A$ block들의 열을 의미한다. 즉, block 단위로 바라보았을 때 행렬 $A$의 $r$열과 행렬 $B$의 $r$행을 곱한다.
+		\item $r$ : 곱셈을 수행할 $\mathbf{B}$의 block들의 행과 $\mathbf{A}$의 block들의 열을 의미한다. 즉, block 단위로 바라보았을 때 행렬 $\mathbf{A}$의 $r$열과 행렬 $\mathbf{B}$의 $r$행을 곱한다.
 	\end{itemize}
 	\item[Output] \hfill \\
 	$((A, B), I)$
@@ -116,7 +116,7 @@ NVIDIA에서는 CUDA라는 기술을 통해 개발자들이 C 언어로 직접 G
 		\item $I$ : 연산의 결과로 HDFS 상의 \texttt{\_\_tmp/A\_B\_r} 디렉토리에 위 곱셈의 결과인 $N \times N$ matrix $\mathbf{C}$가 저장되는데 그 위치를 가리킨다.
 	\end{itemize}
 	\item[Mechanism] \hfill \\
-	곱셈을 수행하고자 하는 block의 행과 열 번호를 알고 있으므로 우리는 다음과 같이 계산할 수 있다. $\mathbf{A}(i,j)$을 행렬 $\mathbf{A}$의 block 단위로 보았을 때 $i$행 $j$열 block이라고 하고 결과값을 가지는 행렬을 $\mathbf{C}$라 하면,
+	곱셈을 수행하고자 하는 block의 행과 열 번호를 알고 있으므로 우리는 다음과 같이 계산할 수 있다. $\mathbf{A}(i,j)$가 행렬 $\mathbf{A}$를 block 단위로 보았을 때 $i$행 $j$열 block이라고 하고 결과값을 가지는 행렬을 $\mathbf{C}$라 하면,
 	\begin{equation*}
 		\mathbf{C}(i,j) = \mathbf{A}(i,r) \times \mathbf{B}(r,j)
 	\end{equation*}
